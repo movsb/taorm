@@ -88,8 +88,6 @@ func ptrToInterface(ptr uintptr, kind reflect.Kind) interface{} {
 		i = (*uint32)(p)
 	case reflect.Uint64:
 		i = (*uint64)(p)
-	default:
-		panic("unknown kind")
 	}
 	return i
 }
@@ -163,4 +161,8 @@ func setPrimaryKeyValue(model interface{}, id int64) {
 		return true
 	})
 	return
+}
+
+func structName(ty reflect.Type) string {
+	return ty.PkgPath() + "." + ty.Name()
 }

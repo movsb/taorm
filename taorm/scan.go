@@ -5,16 +5,18 @@ import (
 	"reflect"
 )
 
-// QueryRows queries results.
+// ScanRows scans result rows into out.
+//
 // out can be either *Struct, *[]Struct, or *[]*Struct.
 //
-// For querying single row, QueryRows returns:
+// For scanning single row, ScanRows returns:
 //   nil          : no error (got row)
 //   sql.ErrNoRows: an error (no data)
-// For querying multiple rows, QueryRows returns:
+//
+// For scanning multiple rows, ScanRows returns:
 //   nil          : no error (but can be empty slice)
 //   some error   : an error
-func QueryRows(out interface{}, tx _SQLCommon, query string, args ...interface{}) error {
+func ScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{}) error {
 	var err error
 	rows, err := tx.Query(query, args...)
 	if err != nil {
@@ -37,7 +39,10 @@ func QueryRows(out interface{}, tx _SQLCommon, query string, args ...interface{}
 	switch ty.Kind() {
 	case reflect.Struct:
 		if rows.Next() {
-			pointers := getPointers(out, columns)
+			pointers, err := getPointers(out, columns)
+			if err != nil {
+				return err
+			}
 			return rows.Scan(pointers...)
 		}
 		err = rows.Err()
@@ -59,7 +64,10 @@ func QueryRows(out interface{}, tx _SQLCommon, query string, args ...interface{}
 			for rows.Next() {
 				elem := reflect.New(ty)
 				elemPtr := elem.Interface()
-				pointers := getPointers(elemPtr, columns)
+				pointers, err := getPointers(elemPtr, columns)
+				if err != nil {
+					return err
+				}
 				if err := rows.Scan(pointers...); err != nil {
 					return err
 				}
@@ -68,7 +76,10 @@ func QueryRows(out interface{}, tx _SQLCommon, query string, args ...interface{}
 		} else {
 			elem := reflect.New(ty)
 			elemPtr := elem.Interface()
-			pointers := getPointers(elemPtr, columns)
+			pointers, err := getPointers(elemPtr, columns)
+			if err != nil {
+				return err
+			}
 			for rows.Next() {
 				if err := rows.Scan(pointers...); err != nil {
 					return err
@@ -83,9 +94,9 @@ func QueryRows(out interface{}, tx _SQLCommon, query string, args ...interface{}
 	}
 }
 
-// MustQueryRows ...
-func MustQueryRows(out interface{}, tx _SQLCommon, query string, args ...interface{}) {
-	if err := QueryRows(out, tx, query, args...); err != nil {
+// MustScanRows ...
+func MustScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{}) {
+	if err := ScanRows(out, tx, query, args...); err != nil {
 		panic(err)
 	}
 }

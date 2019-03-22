@@ -6,15 +6,16 @@ import (
 	"sync"
 )
 
+// _FieldInfo stores info about a field in a struct.
 type _FieldInfo struct {
-	offset uintptr
-	kind   reflect.Kind
+	offset uintptr      // the memory offset of the field
+	kind   reflect.Kind // the reflection kind of the field
 }
 
-// StructInfo ...
+// StructInfo stores info about a struct.
 type _StructInfo struct {
-	tableName string
-	fields    map[string]_FieldInfo
+	tableName string                // The database model name for this struct
+	fields    map[string]_FieldInfo // struct member info
 }
 
 func newStructInfo() *_StructInfo {
@@ -23,57 +24,44 @@ func newStructInfo() *_StructInfo {
 	}
 }
 
-func (s *_StructInfo) mustBeTable() *_StructInfo {
-	if s.tableName == "" {
-		panic("not table")
-	}
-	return s
-}
-
-// FieldPointers ...
-func (s *_StructInfo) FieldPointers(base uintptr, fields []string) (ptrs []interface{}) {
-	ptrs = make([]interface{}, 0, len(fields))
+// FieldPointers returns fields' pointers as interface slice.
+//
+// base: specifies the base address of a struct.
+func (s *_StructInfo) FieldPointers(base uintptr, fields []string) ([]interface{}, error) {
+	ptrs := make([]interface{}, 0, len(fields))
 	for _, field := range fields {
-		if fs, ok := s.fields[field]; ok {
-			i := ptrToInterface(base+fs.offset, fs.kind)
-			ptrs = append(ptrs, i)
-			continue
+		fi, ok := s.fields[field]
+		if !ok {
+			return nil, &NoPlaceToSaveFieldError{field}
 		}
-		panic(fmt.Errorf("no place to save field: %s", field))
+		i := ptrToInterface(base+fi.offset, fi.kind)
+		if i == nil {
+			return nil, &UnknownFieldKindError{field, fi.kind}
+		}
+		ptrs = append(ptrs, i)
 	}
-	return
+	return ptrs, nil
 }
 
+// structs maps struct type name to its info.
 var structs = make(map[string]*_StructInfo)
 var rwLock = &sync.RWMutex{}
 
-func structType(_struct interface{}) reflect.Type {
-	t := reflect.TypeOf(_struct)
-	if t == nil {
-		panic("Register with nil")
-	}
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-	if t.Kind() != reflect.Struct {
-		panic("Register with non-struct")
-	}
-	return t
-}
-
 // register ...
-func register(_struct interface{}, tableName string) *_StructInfo {
+func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 	rwLock.Lock()
 	defer rwLock.Unlock()
-	t := structType(_struct)
-	typeName := t.PkgPath() + "." + t.Name()
+
+	typeName := structName(ty)
+
 	if si, ok := structs[typeName]; ok {
-		return si
+		return si, nil
 	}
+
 	structInfo := newStructInfo()
 	structInfo.tableName = tableName
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
+	for i := 0; i < ty.NumField(); i++ {
+		f := ty.Field(i)
 		if isColumnField(f) {
 			columnName := getColumnName(f)
 			if columnName == "" {
@@ -88,22 +76,38 @@ func register(_struct interface{}, tableName string) *_StructInfo {
 	}
 	structs[typeName] = structInfo
 	fmt.Printf("taorm: registered: %s\n", typeName)
-	return structInfo
+	return structInfo, nil
 }
 
-func getRegistered(_struct interface{}) *_StructInfo {
-	name := structType(_struct).String()
+func getRegistered(_struct interface{}) (*_StructInfo, error) {
+	ty := reflect.TypeOf(_struct)
+	if ty == nil {
+		return nil, &NotStructError{}
+	}
+	if ty.Kind() == reflect.Ptr {
+		ty = ty.Elem()
+	}
+	if ty.Kind() != reflect.Struct {
+		return nil, &NotStructError{ty.Kind()}
+	}
+
+	name := structName(ty)
+
 	rwLock.RLock()
 	if si, ok := structs[name]; ok {
 		rwLock.RUnlock()
-		return si
+		return si, nil
 	}
+
 	rwLock.RUnlock()
-	return register(_struct, "")
+	return register(ty, "")
 }
 
-func getPointers(out interface{}, columns []string) []interface{} {
+func getPointers(out interface{}, columns []string) ([]interface{}, error) {
 	base := baseFromInterface(out)
-	info := getRegistered(out)
+	info, err := getRegistered(out)
+	if err != nil {
+		return nil, err
+	}
 	return info.FieldPointers(base, columns)
 }
