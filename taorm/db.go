@@ -20,8 +20,8 @@ func NewDB(db *sql.DB) *DB {
 }
 
 // TxCall calls callback within transaction.
-// It automatically catches and returns exceptions.
-func (db *DB) TxCall(callback func(tx *DB) interface{}) interface{} {
+// It automatically catches and rethrows exceptions.
+func (db *DB) TxCall(callback func(tx *DB) error) error {
 	rtx, err := db.rdb.Begin()
 	if err != nil {
 		return err
@@ -32,19 +32,31 @@ func (db *DB) TxCall(callback func(tx *DB) interface{}) interface{} {
 		cdb: rtx,
 	}
 
-	catchCall := func() (except interface{}) {
+	var exception struct {
+		caught bool
+		what   interface{}
+	}
+
+	catchCall := func() error {
+		called := false
 		defer func() {
-			except = recover()
+			exception.what = recover()
+			exception.caught = !called
 		}()
-		return callback(tx)
+		err := callback(tx)
+		called = true
+		return err
 	}
 
-	if except := catchCall(); except != nil {
+	if err = catchCall(); err != nil {
 		rtx.Rollback()
-		return except
+		if exception.caught {
+			panic(exception.what)
+		}
+		return err
 	}
 
-	if err := rtx.Commit(); err != nil {
+	if err = rtx.Commit(); err != nil {
 		rtx.Rollback()
 		return err
 	}
