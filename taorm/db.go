@@ -37,23 +37,25 @@ func (db *DB) TxCall(callback func(tx *DB) error) error {
 		what   interface{}
 	}
 
-	catchCall := func() error {
+	catchCall := func() (err error) {
 		called := false
 		defer func() {
 			exception.what = recover()
 			exception.caught = !called
 		}()
-		err := callback(tx)
+		err = callback(tx)
 		called = true
+		return
+	}
+
+	if err := catchCall(); err != nil {
+		rtx.Rollback()
 		return err
 	}
 
-	if err = catchCall(); err != nil {
+	if exception.caught {
 		rtx.Rollback()
-		if exception.caught {
-			panic(exception.what)
-		}
-		return err
+		panic(exception.what)
 	}
 
 	if err = rtx.Commit(); err != nil {
