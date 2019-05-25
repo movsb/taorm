@@ -320,11 +320,6 @@ func (s *Stmt) buildLimit() (limit string) {
 	return
 }
 
-// Exec ...
-func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return db.cdb.Exec(query, args...)
-}
-
 // MustExec ...
 func (db *DB) MustExec(query string, args ...interface{}) sql.Result {
 	result, err := db.Exec(query, args...)
@@ -343,7 +338,7 @@ func (s *Stmt) Create() error {
 
 	dumpSQL(query, args...)
 
-	result, err := s.db.cdb.Exec(query, args...)
+	result, err := s.db.Exec(query, args...)
 	if err != nil {
 		return WrapError(err)
 	}
@@ -381,7 +376,7 @@ func (s *Stmt) Find(out interface{}) error {
 	}
 
 	dumpSQL(query, args...)
-	return ScanRows(out, s.db.cdb, query, args...)
+	return ScanRows(out, s.db, query, args...)
 }
 
 // MustFind ...
@@ -411,7 +406,7 @@ func (s *Stmt) updateMap(fields map[string]interface{}, anyway bool) error {
 
 	dumpSQL(query, args...)
 
-	_, err = s.db.cdb.Exec(query, args...)
+	_, err = s.db.Exec(query, args...)
 	if err != nil {
 		return err
 	}
@@ -463,7 +458,7 @@ func (s *Stmt) _delete(anyway bool) error {
 
 	dumpSQL(query, args...)
 
-	_, err = s.db.cdb.Exec(query, args...)
+	_, err = s.db.Exec(query, args...)
 	if err != nil {
 		return err
 	}

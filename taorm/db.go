@@ -6,15 +6,15 @@ import (
 
 // DB wraps sql.DB.
 type DB struct {
-	rdb *sql.DB    // raw db
-	cdb _SQLCommon // common db
+	rdb *sql.DB // raw db
+	_SQLCommon
 }
 
 // NewDB news a DB.
 func NewDB(db *sql.DB) *DB {
 	t := &DB{
-		rdb: db,
-		cdb: db,
+		rdb:        db,
+		_SQLCommon: db,
 	}
 	return t
 }
@@ -28,8 +28,8 @@ func (db *DB) TxCall(callback func(tx *DB) error) error {
 	}
 
 	tx := &DB{
-		rdb: db.rdb,
-		cdb: rtx,
+		rdb:        db.rdb,
+		_SQLCommon: rtx,
 	}
 
 	var exception struct {
