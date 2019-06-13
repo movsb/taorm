@@ -140,9 +140,13 @@ func (s *Stmt) initPrimaryKey() {
 		f := value.Field(i)
 		columnName := getColumnName(ty.Field(i))
 		if columnName == "id" {
-			id := f.Interface().(int64)
-			if id > 0 {
-				s.Where("id = ?", id)
+			switch typed := f.Interface().(type) {
+			case int64:
+				s.WhereIf(typed > 0, "id=?", typed)
+			case uint:
+				s.WhereIf(typed > 0, "id=?", typed)
+			case int:
+				s.WhereIf(typed > 0, "id=?", typed)
 			}
 			break
 		}

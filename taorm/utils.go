@@ -30,9 +30,13 @@ func isColumnField(field reflect.StructField) bool {
 		return true
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return true
-	default:
-		return false
 	}
+	switch field.Type.String() {
+	case "time.Time", "*time.Time":
+		return true
+	}
+
+	return false
 }
 
 func getColumnName(field reflect.StructField) string {
@@ -155,7 +159,14 @@ func collectDataFromModel(model interface{}) (fields []string, values []interfac
 func setPrimaryKeyValue(model interface{}, id int64) {
 	iterateFields(model, func(name string, field *reflect.StructField, value *reflect.Value) bool {
 		if getColumnName(*field) == "id" {
-			value.SetInt(id)
+			switch value.Kind() {
+			default:
+				panic("setPrimaryKeyValue: invalid type")
+			case reflect.Uint:
+				value.SetUint(uint64(id))
+			case reflect.Int64:
+				value.SetInt(id)
+			}
 			return false
 		}
 		return true
