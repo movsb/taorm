@@ -4,15 +4,24 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 
 	"github.com/go-sql-driver/mysql"
+)
+
+var (
+	reErr1062 = regexp.MustCompile(`Duplicate entry '([^']+)' for key '([^']+)'`)
 )
 
 func WrapError(err error) error {
 	if myErr, ok := err.(*mysql.MySQLError); ok {
 		switch myErr.Number {
 		case 1062:
-			return &DupKeyError{}
+			matches := reErr1062.FindStringSubmatch(myErr.Message)
+			return &DupKeyError{
+				Key:   matches[2],
+				Value: matches[1],
+			}
 		}
 	}
 	return err
@@ -22,10 +31,11 @@ var (
 	ErrNoWhere    = errors.New("taorm: no wheres")
 	ErrNoFields   = errors.New("taorm: no fields")
 	ErrInvalidOut = errors.New("taorm: invalid out")
-	ErrDupKey     = errors.New("taorm: dup key")
 )
 
 type DupKeyError struct {
+	Key   string
+	Value string
 }
 
 func (e DupKeyError) Error() string {
@@ -44,11 +54,11 @@ func (e NoPlaceToSaveFieldError) Error() string {
 // UnknownFieldKindError ...
 type UnknownFieldKindError struct {
 	Field string
-	Kind  reflect.Kind
+	Type  reflect.Type
 }
 
 func (e UnknownFieldKindError) Error() string {
-	return fmt.Sprintf("taorm: unknown field kind (field: `%s', kind: `%v')", e.Field, e.Kind)
+	return fmt.Sprintf("taorm: unknown field kind (field: `%s', kind: `%v')", e.Field, e.Type.String())
 }
 
 // NotStructError ...

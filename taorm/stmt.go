@@ -349,7 +349,7 @@ func (s *Stmt) Create() error {
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return err
+		return WrapError(err)
 	}
 
 	setPrimaryKeyValue(s.model, id)
