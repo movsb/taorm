@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 	"unsafe"
 )
 
@@ -64,10 +65,10 @@ func baseFromInterface(ptr interface{}) uintptr {
 	return uintptr((*_EmptyEface)(unsafe.Pointer(&ptr)).ptr)
 }
 
-func ptrToInterface(ptr uintptr, kind reflect.Kind) interface{} {
+func ptrToInterface(ptr uintptr, typ reflect.Type) interface{} {
 	var i interface{}
 	var p = unsafe.Pointer(ptr)
-	switch kind {
+	switch typ.Kind() {
 	case reflect.Bool:
 		i = (*bool)(p)
 	case reflect.String:
@@ -92,6 +93,13 @@ func ptrToInterface(ptr uintptr, kind reflect.Kind) interface{} {
 		i = (*uint32)(p)
 	case reflect.Uint64:
 		i = (*uint64)(p)
+	}
+	if i != nil {
+		return i
+	}
+	switch typ.String() {
+	case "time.Time":
+		i = (*time.Time)(p)
 	}
 	return i
 }

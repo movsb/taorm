@@ -9,7 +9,7 @@ import (
 // _FieldInfo stores info about a field in a struct.
 type _FieldInfo struct {
 	offset uintptr      // the memory offset of the field
-	kind   reflect.Kind // the reflection kind of the field
+	_type  reflect.Type // the reflection type of the field
 }
 
 // StructInfo stores info about a struct.
@@ -34,9 +34,9 @@ func (s *_StructInfo) FieldPointers(base uintptr, fields []string) ([]interface{
 		if !ok {
 			return nil, &NoPlaceToSaveFieldError{field}
 		}
-		i := ptrToInterface(base+fi.offset, fi.kind)
+		i := ptrToInterface(base+fi.offset, fi._type)
 		if i == nil {
-			return nil, &UnknownFieldKindError{field, fi.kind}
+			return nil, &UnknownFieldKindError{field, fi._type}
 		}
 		ptrs = append(ptrs, i)
 	}
@@ -69,7 +69,7 @@ func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 			}
 			fieldInfo := _FieldInfo{
 				offset: f.Offset,
-				kind:   f.Type.Kind(),
+				_type:  f.Type,
 			}
 			structInfo.fields[columnName] = fieldInfo
 		}
