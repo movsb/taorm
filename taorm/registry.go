@@ -21,6 +21,7 @@ type _StructInfo struct {
 	fieldstr     string                // fields for inserting
 	insertstr    string                // for insert
 	insertFields []_FieldInfo          // offsets of member to insert
+	pkeyField    _FieldInfo
 }
 
 func newStructInfo() *_StructInfo {
@@ -44,6 +45,20 @@ func (s *_StructInfo) FieldPointers(base uintptr, fields []string) ([]interface{
 		ptrs = append(ptrs, ptr)
 	}
 	return ptrs, nil
+}
+
+func (s *_StructInfo) setPrimaryKey(out interface{}, id int64) {
+	base := uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)
+	addr := unsafe.Pointer(base + s.pkeyField.offset)
+	pkey := reflect.NewAt(s.pkeyField._type, addr).Elem()
+	switch s.pkeyField._type.Kind() {
+	case reflect.Uint, reflect.Uint64:
+		pkey.SetUint(uint64(id))
+	case reflect.Int, reflect.Int64:
+		pkey.SetInt(id)
+	default:
+		panic("cannot set primary key")
+	}
 }
 
 // structs maps struct type name to its info.
@@ -81,6 +96,8 @@ func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 			structInfo.fields[columnName] = fieldInfo
 			if columnName != "id" {
 				structInfo.insertFields = append(structInfo.insertFields, fieldInfo)
+			} else {
+				structInfo.pkeyField = fieldInfo
 			}
 		}
 	}

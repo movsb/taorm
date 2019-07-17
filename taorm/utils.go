@@ -103,27 +103,9 @@ func collectDataFromModel(model interface{}, info *_StructInfo) []interface{} {
 	base := uintptr((*_EmptyEface)(unsafe.Pointer(&model)).ptr)
 	for i, f := range info.insertFields {
 		addr := unsafe.Pointer(base + f.offset)
-		values[i] = reflect.NewAt(f._type, addr).Interface()
+		values[i] = reflect.NewAt(f._type, addr).Elem().Interface()
 	}
 	return values
-}
-
-func setPrimaryKeyValue(model interface{}, id int64) {
-	iterateFields(model, func(name string, field *reflect.StructField, value *reflect.Value) bool {
-		if getColumnName(*field) == "id" {
-			switch value.Kind() {
-			default:
-				panic("setPrimaryKeyValue: invalid type")
-			case reflect.Uint:
-				value.SetUint(uint64(id))
-			case reflect.Int64:
-				value.SetInt(id)
-			}
-			return false
-		}
-		return true
-	})
-	return
 }
 
 func structName(ty reflect.Type) string {

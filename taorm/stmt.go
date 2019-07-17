@@ -189,17 +189,17 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 	return sb.String(), args
 }
 
-func (s *Stmt) buildCreate() (string, []interface{}, error) {
+func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
 	panicIf(len(s.tableNames) != 1, "model length is not 1")
 	structInfo, err := getRegistered(s.model)
 	if err != nil {
-		return "", nil, err
+		return structInfo, "", nil, err
 	}
 	args := collectDataFromModel(s.model, structInfo)
 	if len(args) == 0 {
-		return "", nil, ErrNoFields
+		return structInfo, "", nil, ErrNoFields
 	}
-	return structInfo.insertstr, args, nil
+	return structInfo, structInfo.insertstr, args, nil
 }
 
 func (s *Stmt) buildSelect() (string, []interface{}, error) {
@@ -334,7 +334,7 @@ func (db *DB) MustExec(query string, args ...interface{}) sql.Result {
 
 // Create ...
 func (s *Stmt) Create() error {
-	query, args, err := s.buildCreate()
+	info, query, args, err := s.buildCreate()
 	if err != nil {
 		return err
 	}
@@ -351,7 +351,7 @@ func (s *Stmt) Create() error {
 		return WrapError(err)
 	}
 
-	setPrimaryKeyValue(s.model, id)
+	info.setPrimaryKey(s.model, id)
 
 	return nil
 }
@@ -364,7 +364,7 @@ func (s *Stmt) MustCreate() {
 }
 
 func (s *Stmt) CreateSQL() string {
-	query, args, err := s.buildCreate()
+	_, query, args, err := s.buildCreate()
 	if err != nil {
 		panic(err)
 	}
