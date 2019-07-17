@@ -195,7 +195,7 @@ func (s *Stmt) buildCreate() (string, []interface{}, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	args := collectDataFromModel(s.model)
+	args := collectDataFromModel(s.model, structInfo)
 	if len(args) == 0 {
 		return "", nil, ErrNoFields
 	}

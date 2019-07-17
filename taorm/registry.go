@@ -16,10 +16,11 @@ type _FieldInfo struct {
 
 // StructInfo stores info about a struct.
 type _StructInfo struct {
-	tableName string                // The database model name for this struct
-	fields    map[string]_FieldInfo // struct member info
-	fieldstr  string                // fields for inserting
-	insertstr string                // for insert
+	tableName    string                // The database model name for this struct
+	fields       map[string]_FieldInfo // struct member info
+	fieldstr     string                // fields for inserting
+	insertstr    string                // for insert
+	insertFields []_FieldInfo          // offsets of member to insert
 }
 
 func newStructInfo() *_StructInfo {
@@ -78,6 +79,9 @@ func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 				_type:  f.Type,
 			}
 			structInfo.fields[columnName] = fieldInfo
+			if columnName != "id" {
+				structInfo.insertFields = append(structInfo.insertFields, fieldInfo)
+			}
 		}
 	}
 	structInfo.fieldstr = strings.Join(fieldNames, ",")
@@ -88,7 +92,7 @@ func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 	)
 	structInfo.insertstr = query
 	structs[typeName] = structInfo
-	fmt.Printf("taorm: registered: %s\n", typeName)
+	//fmt.Printf("taorm: registered: %s\n", typeName)
 	return structInfo, nil
 }
 

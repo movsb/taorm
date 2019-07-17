@@ -98,15 +98,14 @@ func iterateFields(model interface{}, callback func(name string, field *reflect.
 	}
 }
 
-func collectDataFromModel(model interface{}) (values []interface{}) {
-	iterateFields(model, func(name string, field *reflect.StructField, value *reflect.Value) bool {
-		if name == "id" {
-			return true
-		}
-		values = append(values, value.Interface())
-		return true
-	})
-	return
+func collectDataFromModel(model interface{}, info *_StructInfo) []interface{} {
+	values := make([]interface{}, len(info.insertFields))
+	base := uintptr((*_EmptyEface)(unsafe.Pointer(&model)).ptr)
+	for i, f := range info.insertFields {
+		addr := unsafe.Pointer(base + f.offset)
+		values[i] = reflect.NewAt(f._type, addr).Interface()
+	}
+	return values
 }
 
 func setPrimaryKeyValue(model interface{}, id int64) {
