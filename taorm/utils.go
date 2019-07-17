@@ -120,7 +120,7 @@ func panicIf(cond bool, v interface{}) {
 }
 
 func dumpSQL(query string, args ...interface{}) {
-	fmt.Println(strSQL(query, args...))
+	// fmt.Println(strSQL(query, args...))
 }
 
 func strSQL(query string, args ...interface{}) string {
