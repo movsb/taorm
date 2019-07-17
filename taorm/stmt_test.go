@@ -12,6 +12,12 @@ type User struct {
 	ID   int64
 	Name string
 	Age  int
+
+	Age1 int
+	Age2 int
+	Age3 int
+	Age4 int
+	Age5 int
 }
 
 func BenchmarkInsert(b *testing.B) {

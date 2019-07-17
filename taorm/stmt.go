@@ -191,16 +191,15 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 
 func (s *Stmt) buildCreate() (string, []interface{}, error) {
 	panicIf(len(s.tableNames) != 1, "model length is not 1")
-	fields, args := collectDataFromModel(s.model)
-	if len(fields) == 0 {
+	structInfo, err := getRegistered(s.model)
+	if err != nil {
+		return "", nil, err
+	}
+	args := collectDataFromModel(s.model)
+	if len(args) == 0 {
 		return "", nil, ErrNoFields
 	}
-	query := fmt.Sprintf(`INSERT INTO %s `, s.tableNames[0])
-	query += fmt.Sprintf(` (%s) VALUES (%s)`,
-		strings.Join(fields, ","),
-		createSQLInMarks(len(fields)),
-	)
-	return query, args, nil
+	return structInfo.insertstr, args, nil
 }
 
 func (s *Stmt) buildSelect() (string, []interface{}, error) {

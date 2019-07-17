@@ -3,7 +3,9 @@ package taorm
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
+	"unsafe"
 )
 
 // _FieldInfo stores info about a field in a struct.
@@ -16,6 +18,8 @@ type _FieldInfo struct {
 type _StructInfo struct {
 	tableName string                // The database model name for this struct
 	fields    map[string]_FieldInfo // struct member info
+	fieldstr  string                // fields for inserting
+	insertstr string                // for insert
 }
 
 func newStructInfo() *_StructInfo {
@@ -34,11 +38,9 @@ func (s *_StructInfo) FieldPointers(base uintptr, fields []string) ([]interface{
 		if !ok {
 			return nil, &NoPlaceToSaveFieldError{field}
 		}
-		i := ptrToInterface(base+fi.offset, fi._type)
-		if i == nil {
-			return nil, &UnknownFieldKindError{field, fi._type}
-		}
-		ptrs = append(ptrs, i)
+		addr := unsafe.Pointer(base + fi.offset)
+		ptr := reflect.NewAt(fi._type, addr).Interface()
+		ptrs = append(ptrs, ptr)
 	}
 	return ptrs, nil
 }
@@ -60,12 +62,16 @@ func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 
 	structInfo := newStructInfo()
 	structInfo.tableName = tableName
+	fieldNames := []string{}
 	for i := 0; i < ty.NumField(); i++ {
 		f := ty.Field(i)
 		if isColumnField(f) {
 			columnName := getColumnName(f)
 			if columnName == "" {
 				continue
+			}
+			if columnName != "id" {
+				fieldNames = append(fieldNames, columnName)
 			}
 			fieldInfo := _FieldInfo{
 				offset: f.Offset,
@@ -74,6 +80,13 @@ func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 			structInfo.fields[columnName] = fieldInfo
 		}
 	}
+	structInfo.fieldstr = strings.Join(fieldNames, ",")
+	query := fmt.Sprintf(`INSERT INTO %s `, tableName)
+	query += fmt.Sprintf(` (%s) VALUES (%s)`,
+		structInfo.fieldstr,
+		createSQLInMarks(len(fieldNames)),
+	)
+	structInfo.insertstr = query
 	structs[typeName] = structInfo
 	fmt.Printf("taorm: registered: %s\n", typeName)
 	return structInfo, nil
@@ -104,7 +117,7 @@ func getRegistered(_struct interface{}) (*_StructInfo, error) {
 }
 
 func getPointers(out interface{}, columns []string) ([]interface{}, error) {
-	base := baseFromInterface(out)
+	base := uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)
 	info, err := getRegistered(out)
 	if err != nil {
 		return nil, err

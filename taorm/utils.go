@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"time"
 	"unsafe"
 )
 
@@ -24,20 +23,10 @@ func isColumnField(field reflect.StructField) bool {
 	if !ast.IsExported(field.Name) {
 		return false
 	}
-	switch field.Type.Kind() {
-	case reflect.Bool, reflect.String:
-		return true
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return true
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return true
+	if field.Type.Kind() == reflect.Struct {
+		return false
 	}
-	switch field.Type.String() {
-	case "time.Time", "*time.Time":
-		return true
-	}
-
-	return false
+	return true
 }
 
 func getColumnName(field reflect.StructField) string {
@@ -59,49 +48,6 @@ func getColumnName(field reflect.StructField) string {
 type _EmptyEface struct {
 	typ *struct{}
 	ptr unsafe.Pointer
-}
-
-func baseFromInterface(ptr interface{}) uintptr {
-	return uintptr((*_EmptyEface)(unsafe.Pointer(&ptr)).ptr)
-}
-
-func ptrToInterface(ptr uintptr, typ reflect.Type) interface{} {
-	var i interface{}
-	var p = unsafe.Pointer(ptr)
-	switch typ.Kind() {
-	case reflect.Bool:
-		i = (*bool)(p)
-	case reflect.String:
-		i = (*string)(p)
-	case reflect.Int:
-		i = (*int)(p)
-	case reflect.Int8:
-		i = (*int8)(p)
-	case reflect.Int16:
-		i = (*int16)(p)
-	case reflect.Int32:
-		i = (*int32)(p)
-	case reflect.Int64:
-		i = (*int64)(p)
-	case reflect.Uint:
-		i = (*uint)(p)
-	case reflect.Uint8:
-		i = (*uint8)(p)
-	case reflect.Uint16:
-		i = (*uint16)(p)
-	case reflect.Uint32:
-		i = (*uint32)(p)
-	case reflect.Uint64:
-		i = (*uint64)(p)
-	}
-	if i != nil {
-		return i
-	}
-	switch typ.String() {
-	case "time.Time":
-		i = (*time.Time)(p)
-	}
-	return i
 }
 
 // createSQLInMarks creates "?,?,?" string.
@@ -152,12 +98,11 @@ func iterateFields(model interface{}, callback func(name string, field *reflect.
 	}
 }
 
-func collectDataFromModel(model interface{}) (fields []string, values []interface{}) {
+func collectDataFromModel(model interface{}) (values []interface{}) {
 	iterateFields(model, func(name string, field *reflect.StructField, value *reflect.Value) bool {
 		if name == "id" {
 			return true
 		}
-		fields = append(fields, name)
 		values = append(values, value.Interface())
 		return true
 	})
