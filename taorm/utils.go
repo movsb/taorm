@@ -1,6 +1,8 @@
 package taorm
 
 import (
+	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"go/ast"
 	"reflect"
@@ -23,8 +25,11 @@ func isColumnField(field reflect.StructField) bool {
 	if !ast.IsExported(field.Name) {
 		return false
 	}
-	if field.Type.Kind() == reflect.Struct {
-		return false
+	if field.Type.Kind() == reflect.Struct || field.Type.Kind() == reflect.Ptr {
+		dummy := reflect.NewAt(field.Type, unsafe.Pointer(nil)).Interface()
+		_, scanable := dummy.(sql.Scanner)
+		_, valueable := dummy.(driver.Valuer)
+		return scanable && valueable
 	}
 	return true
 }
