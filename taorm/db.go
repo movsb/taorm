@@ -75,7 +75,12 @@ func (db *DB) Model(model interface{}, name string) *Stmt {
 		offset:     -1,
 	}
 
-	stmt.initPrimaryKey()
+	info, err := getRegistered(model)
+	if err != nil {
+		panic(err)
+	}
+
+	stmt.info = info
 
 	return stmt
 }

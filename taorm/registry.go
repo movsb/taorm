@@ -30,27 +30,36 @@ func newStructInfo() *_StructInfo {
 	}
 }
 
+func (s *_StructInfo) baseOf(out interface{}) uintptr {
+	return uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)
+}
+
+func (s *_StructInfo) valueOf(out interface{}, field _FieldInfo) reflect.Value {
+	addr := unsafe.Pointer(s.baseOf(out) + field.offset)
+	return reflect.NewAt(field._type, addr).Elem()
+}
+
+func (s *_StructInfo) addrOf(out interface{}, field _FieldInfo) interface{} {
+	addr := unsafe.Pointer(s.baseOf(out) + field.offset)
+	return reflect.NewAt(field._type, addr).Interface()
+}
+
 // FieldPointers returns fields' pointers as interface slice.
-//
-// base: specifies the base address of a struct.
-func (s *_StructInfo) FieldPointers(base uintptr, fields []string) ([]interface{}, error) {
+func (s *_StructInfo) FieldPointers(out interface{}, fields []string) ([]interface{}, error) {
 	ptrs := make([]interface{}, 0, len(fields))
 	for _, field := range fields {
 		fi, ok := s.fields[field]
 		if !ok {
 			return nil, &NoPlaceToSaveFieldError{field}
 		}
-		addr := unsafe.Pointer(base + fi.offset)
-		ptr := reflect.NewAt(fi._type, addr).Interface()
-		ptrs = append(ptrs, ptr)
+		addr := s.addrOf(out, fi)
+		ptrs = append(ptrs, addr)
 	}
 	return ptrs, nil
 }
 
 func (s *_StructInfo) setPrimaryKey(out interface{}, id int64) {
-	base := uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)
-	addr := unsafe.Pointer(base + s.pkeyField.offset)
-	pkey := reflect.NewAt(s.pkeyField._type, addr).Elem()
+	pkey := s.valueOf(out, s.pkeyField)
 	switch s.pkeyField._type.Kind() {
 	case reflect.Uint, reflect.Uint64:
 		pkey.SetUint(uint64(id))
@@ -59,6 +68,11 @@ func (s *_StructInfo) setPrimaryKey(out interface{}, id int64) {
 	default:
 		panic("cannot set primary key")
 	}
+}
+
+func (s *_StructInfo) getPrimaryKey(out interface{}) int64 {
+	pkey := s.valueOf(out, s.pkeyField)
+	return pkey.Int()
 }
 
 // structs maps struct type name to its info.
@@ -138,10 +152,9 @@ func getRegistered(_struct interface{}) (*_StructInfo, error) {
 }
 
 func getPointers(out interface{}, columns []string) ([]interface{}, error) {
-	base := uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)
 	info, err := getRegistered(out)
 	if err != nil {
 		return nil, err
 	}
-	return info.FieldPointers(base, columns)
+	return info.FieldPointers(out, columns)
 }

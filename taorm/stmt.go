@@ -49,6 +49,7 @@ func (w *_Where) Rebuild() (query string, args []interface{}) {
 type Stmt struct {
 	db              *DB
 	model           interface{}
+	info            *_StructInfo
 	tableNames      []string
 	innerJoinTables []string
 	fields          []string
@@ -126,33 +127,6 @@ func (s *Stmt) Offset(offset int64) *Stmt {
 	return s
 }
 
-func (s *Stmt) initPrimaryKey() {
-	ty := reflect.TypeOf(s.model)
-	value := reflect.ValueOf(s.model)
-	if ty.Kind() == reflect.Ptr {
-		ty = ty.Elem()
-		value = value.Elem()
-	}
-	if ty.Kind() != reflect.Struct {
-		panic("not struct")
-	}
-	for i := 0; i < ty.NumField(); i++ {
-		f := value.Field(i)
-		columnName := getColumnName(ty.Field(i))
-		if columnName == "id" {
-			switch typed := f.Interface().(type) {
-			case int64:
-				s.WhereIf(typed > 0, "id=?", typed)
-			case uint:
-				s.WhereIf(typed > 0, "id=?", typed)
-			case int:
-				s.WhereIf(typed > 0, "id=?", typed)
-			}
-			break
-		}
-	}
-}
-
 // noWheres returns true if no SQL conditions.
 // Includes and, or.
 func (s *Stmt) noWheres() bool {
@@ -160,6 +134,11 @@ func (s *Stmt) noWheres() bool {
 }
 
 func (s *Stmt) buildWheres() (string, []interface{}) {
+	if s.model != nil {
+		id := s.info.getPrimaryKey(s.model)
+		s.Where("id=?", id)
+	}
+
 	if s.noWheres() {
 		return "", nil
 	}

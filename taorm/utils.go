@@ -78,31 +78,6 @@ func strSQL(query string, args ...interface{}) string {
 	return fmt.Sprintf(strings.Replace(query, "?", "%v", -1), args...)
 }
 
-func iterateFields(model interface{}, callback func(name string, field *reflect.StructField, value *reflect.Value) bool) {
-	var rt reflect.Type
-	var rv reflect.Value
-
-	rt = reflect.TypeOf(model)
-	rv = reflect.ValueOf(model)
-	if rt.Kind() == reflect.Ptr {
-		rt = rt.Elem()
-		rv = rv.Elem()
-	}
-	for i, n := 0, rt.NumField(); i < n; i++ {
-		field := rt.Field(i)
-		if isColumnField(field) {
-			columnName := getColumnName(field)
-			if columnName == "" {
-				continue
-			}
-			value := rv.Field(i)
-			if !callback(columnName, &field, &value) {
-				break
-			}
-		}
-	}
-}
-
 func collectDataFromModel(model interface{}, info *_StructInfo) []interface{} {
 	values := make([]interface{}, len(info.insertFields))
 	base := uintptr((*_EmptyEface)(unsafe.Pointer(&model)).ptr)
