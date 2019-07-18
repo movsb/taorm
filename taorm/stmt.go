@@ -376,7 +376,7 @@ func (s *Stmt) FindSQL() string {
 	return strSQL(query, args...)
 }
 
-func (s *Stmt) updateMap(fields map[string]interface{}, anyway bool) error {
+func (s *Stmt) updateMap(fields M, anyway bool) error {
 	query, args, err := s.buildUpdate(fields)
 	if err != nil {
 		return err
@@ -397,30 +397,30 @@ func (s *Stmt) updateMap(fields map[string]interface{}, anyway bool) error {
 }
 
 // UpdateMap ...
-func (s *Stmt) UpdateMap(updates map[string]interface{}) error {
+func (s *Stmt) UpdateMap(updates M) error {
 	return s.updateMap(updates, false)
 }
 
 // UpdateMapAnyway ...
-func (s *Stmt) UpdateMapAnyway(updates map[string]interface{}) error {
+func (s *Stmt) UpdateMapAnyway(updates M) error {
 	return s.updateMap(updates, true)
 }
 
 // MustUpdateMap ...
-func (s *Stmt) MustUpdateMap(updates map[string]interface{}) {
+func (s *Stmt) MustUpdateMap(updates M) {
 	if err := s.updateMap(updates, false); err != nil {
 		panic(err)
 	}
 }
 
 // MustUpdateMapAnyway ...
-func (s *Stmt) MustUpdateMapAnyway(updates map[string]interface{}) {
+func (s *Stmt) MustUpdateMapAnyway(updates M) {
 	if err := s.updateMap(updates, true); err != nil {
 		panic(err)
 	}
 }
 
-func (s *Stmt) UpdateSQL(updates map[string]interface{}) string {
+func (s *Stmt) UpdateSQL(updates M) string {
 	query, args, err := s.buildUpdate(updates)
 	if err != nil {
 		panic(err)

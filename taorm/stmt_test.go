@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"testing"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/movsb/taorm/mimic"
 )
 
@@ -12,6 +13,49 @@ type User struct {
 	ID   int64
 	Name string
 	Age  int
+}
+
+func TestSQLs(t *testing.T) {
+	db, err := sql.Open("mysql", "taorm:taorm@/taorm")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tdb := NewDB(db)
+	Register(User{}, "users")
+	tests := []struct {
+		want string
+		got  string
+	}{
+		{
+			"SELECT * FROM users",
+			tdb.From("users").FindSQL(),
+		}, {
+			"INSERT INTO users (name,age) VALUES (tao,18)",
+			tdb.Model(User{
+				Name: "tao",
+				Age:  18,
+			}).CreateSQL(),
+		},
+		{
+			"UPDATE users SET age=20 WHERE (id=1)",
+			tdb.Model(User{
+				ID:   1,
+				Name: "tao",
+				Age:  18,
+			}).UpdateSQL(M{
+				"age": 20,
+			}),
+		},
+		{
+			"DELETE FROM users WHERE (id=1)",
+			tdb.From("users").Where("id=?", 1).DeleteSQL(),
+		},
+	}
+	for _, test := range tests {
+		if test.want != test.got {
+			t.Fatal("not equal: ", test.want, "!=", test.got)
+		}
+	}
 }
 
 func BenchmarkInsert(b *testing.B) {
@@ -29,7 +73,7 @@ func BenchmarkInsert(b *testing.B) {
 	taodb := NewDB(db)
 
 	for i := 0; i < b.N; i++ {
-		err := taodb.Model(&user, "users").Create()
+		err := taodb.Model(&user).Create()
 		if err != nil {
 			b.Fatal(err)
 		}

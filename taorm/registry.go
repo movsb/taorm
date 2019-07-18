@@ -88,6 +88,12 @@ func (s *_StructInfo) getPrimaryKey(out interface{}) int64 {
 var structs = make(map[string]*_StructInfo)
 var rwLock = &sync.RWMutex{}
 
+// Register ...
+func Register(_struct interface{}, tableName string) error {
+	_, err := register(reflect.TypeOf(_struct), tableName)
+	return err
+}
+
 // register ...
 func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 	rwLock.Lock()
@@ -126,7 +132,7 @@ func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 	}
 	structInfo.fieldstr = strings.Join(fieldNames, ",")
 	query := fmt.Sprintf(`INSERT INTO %s `, tableName)
-	query += fmt.Sprintf(` (%s) VALUES (%s)`,
+	query += fmt.Sprintf(`(%s) VALUES (%s)`,
 		structInfo.fieldstr,
 		createSQLInMarks(len(fieldNames)),
 	)
@@ -136,7 +142,7 @@ func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 	return structInfo, nil
 }
 
-func getRegistered(_struct interface{}) (*_StructInfo, error) {
+func structType(_struct interface{}) (reflect.Type, error) {
 	ty := reflect.TypeOf(_struct)
 	if ty == nil {
 		return nil, &NotStructError{}
@@ -147,7 +153,14 @@ func getRegistered(_struct interface{}) (*_StructInfo, error) {
 	if ty.Kind() != reflect.Struct {
 		return nil, &NotStructError{ty.Kind()}
 	}
+	return ty, nil
+}
 
+func getRegistered(_struct interface{}) (*_StructInfo, error) {
+	ty, err := structType(_struct)
+	if err != nil {
+		return nil, err
+	}
 	name := structName(ty)
 
 	rwLock.RLock()
@@ -155,7 +168,6 @@ func getRegistered(_struct interface{}) (*_StructInfo, error) {
 		rwLock.RUnlock()
 		return si, nil
 	}
-
 	rwLock.RUnlock()
-	return register(ty, "")
+	return nil, fmt.Errorf("not registered:" + name)
 }

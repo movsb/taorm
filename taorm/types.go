@@ -9,3 +9,5 @@ type _SQLCommon interface {
 
 // Expr is raw SQL string.
 type Expr string
+
+type M map[string]interface{}

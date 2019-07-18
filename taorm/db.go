@@ -66,11 +66,11 @@ func (db *DB) TxCall(callback func(tx *DB) error) error {
 	return nil
 }
 
-func (db *DB) Model(model interface{}, name string) *Stmt {
+func (db *DB) Model(model interface{}) *Stmt {
 	stmt := &Stmt{
 		db:         db,
 		model:      model,
-		tableNames: []string{name},
+		tableNames: []string{},
 		limit:      -1,
 		offset:     -1,
 	}
@@ -79,6 +79,8 @@ func (db *DB) Model(model interface{}, name string) *Stmt {
 	if err != nil {
 		panic(err)
 	}
+
+	stmt.tableNames = append(stmt.tableNames, info.tableName)
 
 	stmt.info = info
 
