@@ -3,6 +3,7 @@ package taorm
 import (
 	"database/sql"
 	"reflect"
+	"unsafe"
 )
 
 // ScanRows scans result rows into out.
@@ -38,8 +39,12 @@ func ScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{})
 	ty = ty.Elem()
 	switch ty.Kind() {
 	case reflect.Struct:
+		info, err := getRegistered(out)
+		if err != nil {
+			return err
+		}
 		if rows.Next() {
-			pointers, err := getPointers(out, columns)
+			pointers, err := info.ptrsOf(out, columns)
 			if err != nil {
 				return err
 			}
@@ -60,11 +65,15 @@ func ScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{})
 		if ty.Kind() != reflect.Struct {
 			return ErrInvalidOut
 		}
+		info, err := getRegistered(reflect.NewAt(ty, unsafe.Pointer(nil)).Interface())
+		if err != nil {
+			return err
+		}
 		if isPtr {
 			for rows.Next() {
 				elem := reflect.New(ty)
 				elemPtr := elem.Interface()
-				pointers, err := getPointers(elemPtr, columns)
+				pointers, err := info.ptrsOf(elemPtr, columns)
 				if err != nil {
 					return err
 				}
@@ -76,7 +85,7 @@ func ScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{})
 		} else {
 			elem := reflect.New(ty)
 			elemPtr := elem.Interface()
-			pointers, err := getPointers(elemPtr, columns)
+			pointers, err := info.ptrsOf(elemPtr, columns)
 			if err != nil {
 				return err
 			}

@@ -44,8 +44,7 @@ func (s *_StructInfo) addrOf(out interface{}, field _FieldInfo) interface{} {
 	return reflect.NewAt(field._type, addr).Interface()
 }
 
-// FieldPointers returns fields' pointers as interface slice.
-func (s *_StructInfo) FieldPointers(out interface{}, fields []string) ([]interface{}, error) {
+func (s *_StructInfo) ptrsOf(out interface{}, fields []string) ([]interface{}, error) {
 	ptrs := make([]interface{}, 0, len(fields))
 	for _, field := range fields {
 		fi, ok := s.fields[field]
@@ -149,12 +148,4 @@ func getRegistered(_struct interface{}) (*_StructInfo, error) {
 
 	rwLock.RUnlock()
 	return register(ty, "")
-}
-
-func getPointers(out interface{}, columns []string) ([]interface{}, error) {
-	info, err := getRegistered(out)
-	if err != nil {
-		return nil, err
-	}
-	return info.FieldPointers(out, columns)
 }
