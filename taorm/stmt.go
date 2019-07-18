@@ -170,15 +170,15 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 
 func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
 	panicIf(len(s.tableNames) != 1, "model length is not 1")
-	structInfo, err := getRegistered(s.model)
+	info, err := getRegistered(s.model)
 	if err != nil {
-		return structInfo, "", nil, err
+		return info, "", nil, err
 	}
-	args := collectDataFromModel(s.model, structInfo)
+	args := info.ifacesOf(s.model)
 	if len(args) == 0 {
-		return structInfo, "", nil, ErrNoFields
+		return info, "", nil, ErrNoFields
 	}
-	return structInfo, structInfo.insertstr, args, nil
+	return info, info.insertstr, args, nil
 }
 
 func (s *Stmt) buildSelect() (string, []interface{}, error) {

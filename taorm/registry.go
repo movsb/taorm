@@ -57,6 +57,16 @@ func (s *_StructInfo) ptrsOf(out interface{}, fields []string) ([]interface{}, e
 	return ptrs, nil
 }
 
+func (s *_StructInfo) ifacesOf(out interface{}) []interface{} {
+	values := make([]interface{}, len(s.insertFields))
+	base := s.baseOf(out)
+	for i, f := range s.insertFields {
+		addr := unsafe.Pointer(base + f.offset)
+		values[i] = reflect.NewAt(f._type, addr).Elem().Interface()
+	}
+	return values
+}
+
 func (s *_StructInfo) setPrimaryKey(out interface{}, id int64) {
 	pkey := s.valueOf(out, s.pkeyField)
 	switch s.pkeyField._type.Kind() {

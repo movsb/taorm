@@ -78,16 +78,6 @@ func strSQL(query string, args ...interface{}) string {
 	return fmt.Sprintf(strings.Replace(query, "?", "%v", -1), args...)
 }
 
-func collectDataFromModel(model interface{}, info *_StructInfo) []interface{} {
-	values := make([]interface{}, len(info.insertFields))
-	base := uintptr((*_EmptyEface)(unsafe.Pointer(&model)).ptr)
-	for i, f := range info.insertFields {
-		addr := unsafe.Pointer(base + f.offset)
-		values[i] = reflect.NewAt(f._type, addr).Elem().Interface()
-	}
-	return values
-}
-
 func structName(ty reflect.Type) string {
 	return ty.PkgPath() + "." + ty.Name()
 }
