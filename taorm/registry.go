@@ -20,6 +20,7 @@ type _StructInfo struct {
 	fields       map[string]_FieldInfo // struct member info
 	fieldstr     string                // fields for inserting
 	insertstr    string                // for insert
+	updatestr    string                // for update
 	insertFields []_FieldInfo          // offsets of member to insert
 	pkeyField    _FieldInfo
 }
@@ -131,12 +132,23 @@ func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 		}
 	}
 	structInfo.fieldstr = strings.Join(fieldNames, ",")
-	query := fmt.Sprintf(`INSERT INTO %s `, tableName)
-	query += fmt.Sprintf(`(%s) VALUES (%s)`,
-		structInfo.fieldstr,
-		createSQLInMarks(len(fieldNames)),
-	)
-	structInfo.insertstr = query
+	{
+		query := fmt.Sprintf(`INSERT INTO %s `, tableName)
+		query += fmt.Sprintf(`(%s) VALUES (%s)`,
+			structInfo.fieldstr,
+			createSQLInMarks(len(fieldNames)),
+		)
+		structInfo.insertstr = query
+	}
+	{
+		query := fmt.Sprintf(`UPDATE %s SET `, tableName)
+		pairs := []string{}
+		for _, name := range fieldNames {
+			pairs = append(pairs, name+"=?")
+		}
+		query += strings.Join(pairs, ",")
+		structInfo.updatestr = query
+	}
 	structs[typeName] = structInfo
 	//fmt.Printf("taorm: registered: %s\n", typeName)
 	return structInfo, nil

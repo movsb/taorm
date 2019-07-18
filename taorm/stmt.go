@@ -229,7 +229,7 @@ func (s *Stmt) buildSelect() (string, []interface{}, error) {
 	return query, args, nil
 }
 
-func (s *Stmt) buildUpdate(fields map[string]interface{}) (string, []interface{}, error) {
+func (s *Stmt) buildUpdateMap(fields map[string]interface{}) (string, []interface{}, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
 	var args []interface{}
 	query := fmt.Sprintf(`UPDATE %s SET `, strings.Join(s.tableNames, ","))
@@ -261,6 +261,16 @@ func (s *Stmt) buildUpdate(fields map[string]interface{}) (string, []interface{}
 
 	query += s.buildLimit()
 
+	return query, args, nil
+}
+
+func (s *Stmt) buildUpdateModel(model interface{}) (string, []interface{}, error) {
+	panicIf(len(s.tableNames) == 0, "model is empty")
+	query := s.info.updatestr
+	args := s.info.ifacesOf(model)
+	whereQuery, whereArgs := s.buildWheres()
+	query += whereQuery
+	args = append(args, whereArgs...)
 	return query, args, nil
 }
 
@@ -377,13 +387,35 @@ func (s *Stmt) FindSQL() string {
 }
 
 func (s *Stmt) updateMap(fields M, anyway bool) error {
-	query, args, err := s.buildUpdate(fields)
+	query, args, err := s.buildUpdateMap(fields)
 	if err != nil {
+		if err == ErrNoFields {
+			return nil
+		}
 		return err
 	}
 
 	if !anyway && s.noWheres() {
 		return ErrNoWhere
+	}
+
+	dumpSQL(query, args...)
+
+	_, err = s.db.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Stmt) updateModel(model interface{}) error {
+	query, args, err := s.buildUpdateModel(model)
+	if err != nil {
+		if err == ErrNoFields {
+			return nil
+		}
+		return err
 	}
 
 	dumpSQL(query, args...)
@@ -406,6 +438,11 @@ func (s *Stmt) UpdateMapAnyway(updates M) error {
 	return s.updateMap(updates, true)
 }
 
+// UpdateModel ...
+func (s *Stmt) UpdateModel(model interface{}) error {
+	return s.updateModel(model)
+}
+
 // MustUpdateMap ...
 func (s *Stmt) MustUpdateMap(updates M) {
 	if err := s.updateMap(updates, false); err != nil {
@@ -420,8 +457,16 @@ func (s *Stmt) MustUpdateMapAnyway(updates M) {
 	}
 }
 
-func (s *Stmt) UpdateSQL(updates M) string {
-	query, args, err := s.buildUpdate(updates)
+func (s *Stmt) UpdateMapSQL(updates M) string {
+	query, args, err := s.buildUpdateMap(updates)
+	if err != nil {
+		panic(err)
+	}
+	return strSQL(query, args...)
+}
+
+func (s *Stmt) UpdateModelSQL(model interface{}) string {
+	query, args, err := s.buildUpdateModel(model)
 	if err != nil {
 		panic(err)
 	}

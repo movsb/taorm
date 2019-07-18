@@ -42,8 +42,20 @@ func TestSQLs(t *testing.T) {
 				ID:   1,
 				Name: "tao",
 				Age:  18,
-			}).UpdateSQL(M{
+			}).UpdateMapSQL(M{
 				"age": 20,
+			}),
+		},
+		{
+			"UPDATE users SET name=TAO,age=28 WHERE (id=1)",
+			tdb.Model(User{
+				ID:   1,
+				Name: "tao",
+				Age:  18,
+			}).UpdateModelSQL(User{
+				ID:   1,
+				Name: "TAO",
+				Age:  28,
 			}),
 		},
 		{
