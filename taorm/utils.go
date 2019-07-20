@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 	"unsafe"
 )
 
@@ -29,7 +30,14 @@ func isColumnField(field reflect.StructField) bool {
 		dummy := reflect.NewAt(field.Type, unsafe.Pointer(nil)).Interface()
 		_, scanable := dummy.(sql.Scanner)
 		_, valueable := dummy.(driver.Valuer)
-		return scanable && valueable
+		if scanable && valueable {
+			return true
+		}
+		switch dummy.(type) {
+		case time.Time, *time.Time:
+			return true
+		}
+		return false
 	}
 	return true
 }
