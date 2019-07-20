@@ -181,35 +181,40 @@ func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
 	return info, info.insertstr, args, nil
 }
 
-func (s *Stmt) buildSelect() (string, []interface{}, error) {
+func (s *Stmt) buildSelect(isCount bool) (string, []interface{}, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
 
-	fields := []string{}
-	if len(s.fields) == 0 {
-		if len(s.innerJoinTables) == 0 {
-			fields = []string{"*"}
-		} else {
-			fields = []string{s.tableNames[0] + ".*"}
-		}
+	var strFields string
+
+	if isCount {
+		strFields = "COUNT(1)"
 	} else {
-		if len(s.innerJoinTables) == 0 || len(s.fields) == 1 && s.fields[0] == "*" {
-			fields = s.fields
+		fields := []string{}
+		if len(s.fields) == 0 {
+			if len(s.innerJoinTables) == 0 {
+				fields = []string{"*"}
+			} else {
+				fields = []string{s.tableNames[0] + ".*"}
+			}
 		} else {
-			for _, list := range s.fields {
-				slice := strings.Split(list, ",")
-				for _, field := range slice {
-					index := strings.IndexByte(field, '.')
-					if index == -1 {
-						fields = append(fields, fmt.Sprintf("%s.%s", s.tableNames[0], field))
-					} else {
-						fields = append(fields, field)
+			if len(s.innerJoinTables) == 0 || len(s.fields) == 1 && s.fields[0] == "*" {
+				fields = s.fields
+			} else {
+				for _, list := range s.fields {
+					slice := strings.Split(list, ",")
+					for _, field := range slice {
+						index := strings.IndexByte(field, '.')
+						if index == -1 {
+							fields = append(fields, fmt.Sprintf("%s.%s", s.tableNames[0], field))
+						} else {
+							fields = append(fields, field)
+						}
 					}
 				}
 			}
 		}
+		strFields = strings.Join(fields, ",")
 	}
-
-	strFields := strings.Join(fields, ",")
 
 	query := fmt.Sprintf(`SELECT %s FROM %s`, strFields, strings.Join(s.tableNames, ","))
 	if len(s.innerJoinTables) > 0 {
@@ -362,7 +367,7 @@ func (s *Stmt) CreateSQL() string {
 
 // Find ...
 func (s *Stmt) Find(out interface{}) error {
-	query, args, err := s.buildSelect()
+	query, args, err := s.buildSelect(false)
 	if err != nil {
 		return WrapError(err)
 	}
@@ -379,7 +384,31 @@ func (s *Stmt) MustFind(out interface{}) {
 }
 
 func (s *Stmt) FindSQL() string {
-	query, args, err := s.buildSelect()
+	query, args, err := s.buildSelect(false)
+	if err != nil {
+		panic(WrapError(err))
+	}
+	return strSQL(query, args...)
+}
+
+func (s *Stmt) Count(out interface{}) error {
+	query, args, err := s.buildSelect(true)
+	if err != nil {
+		return WrapError(err)
+	}
+
+	dumpSQL(query, args...)
+	return ScanRows(out, s.db, query, args...)
+}
+
+func (s *Stmt) MustCount(out interface{}) {
+	if err := s.Count(out); err != nil {
+		panic(err)
+	}
+}
+
+func (s *Stmt) CountSQL() string {
+	query, args, err := s.buildSelect(true)
 	if err != nil {
 		panic(WrapError(err))
 	}

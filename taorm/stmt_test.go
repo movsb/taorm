@@ -62,6 +62,10 @@ func TestSQLs(t *testing.T) {
 			"DELETE FROM users WHERE (id=1)",
 			tdb.From("users").Where("id=?", 1).DeleteSQL(),
 		},
+		{
+			"SELECT COUNT(1) FROM users WHERE (age=28)",
+			tdb.From("users").Where("age=?", 28).CountSQL(),
+		},
 	}
 	for _, test := range tests {
 		if test.want != test.got {

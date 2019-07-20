@@ -44,7 +44,7 @@ func ScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{})
 		}
 		err = rows.Err()
 		if err == nil {
-			err = WrapError(sql.ErrNoRows)
+			err = sql.ErrNoRows
 		}
 		return WrapError(err)
 	case reflect.Slice:
@@ -91,7 +91,17 @@ func ScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{})
 		reflect.ValueOf(out).Elem().Set(slice)
 		return WrapError(rows.Err())
 	default:
-		return WrapError(ErrInvalidOut)
+		if len(columns) != 1 {
+			return WrapError(ErrInvalidOut)
+		}
+		if rows.Next() {
+			return WrapError(rows.Scan(out))
+		}
+		err = rows.Err()
+		if err == nil {
+			err = sql.ErrNoRows
+		}
+		return WrapError(err)
 	}
 }
 
