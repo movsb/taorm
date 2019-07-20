@@ -24,7 +24,7 @@ func NewDB(db *sql.DB) *DB {
 func (db *DB) TxCall(callback func(tx *DB) error) error {
 	rtx, err := db.rdb.Begin()
 	if err != nil {
-		return err
+		return WrapError(err)
 	}
 
 	tx := &DB{
@@ -33,8 +33,8 @@ func (db *DB) TxCall(callback func(tx *DB) error) error {
 	}
 
 	var exception struct {
-		caught bool
-		what   interface{}
+		caught bool        // user callback threw an exception
+		what   interface{} // user thrown exception
 	}
 
 	catchCall := func() (err error) {
@@ -50,17 +50,17 @@ func (db *DB) TxCall(callback func(tx *DB) error) error {
 
 	if err := catchCall(); err != nil {
 		rtx.Rollback()
-		return err
+		return err // user error, not wrapped
 	}
 
 	if exception.caught {
 		rtx.Rollback()
-		panic(exception.what)
+		panic(exception.what) // user exception, not wrapped
 	}
 
 	if err = rtx.Commit(); err != nil {
 		rtx.Rollback()
-		return err
+		return WrapError(err)
 	}
 
 	return nil
@@ -77,7 +77,7 @@ func (db *DB) Model(model interface{}) *Stmt {
 
 	info, err := getRegistered(model)
 	if err != nil {
-		panic(err)
+		panic(WrapError(err))
 	}
 
 	stmt.tableNames = append(stmt.tableNames, info.tableName)

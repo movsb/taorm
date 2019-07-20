@@ -92,7 +92,7 @@ var rwLock = &sync.RWMutex{}
 // Register ...
 func Register(_struct interface{}, tableName string) error {
 	_, err := register(reflect.TypeOf(_struct), tableName)
-	return err
+	return WrapError(err)
 }
 
 // register ...

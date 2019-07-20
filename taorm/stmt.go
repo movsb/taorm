@@ -14,7 +14,7 @@ type _Where struct {
 	args  []interface{}
 }
 
-func (w *_Where) Rebuild() (query string, args []interface{}) {
+func (w *_Where) rebuild() (query string, args []interface{}) {
 	sb := bytes.NewBuffer(nil)
 	var i int
 	for _, c := range w.query {
@@ -153,7 +153,7 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 		if i > 0 {
 			sb.WriteString(" AND ")
 		}
-		query, xargs := w.Rebuild()
+		query, xargs := w.rebuild()
 		fw("(%s)", query)
 		args = append(args, xargs...)
 	}
@@ -161,7 +161,7 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 		if i > 0 {
 			sb.WriteString(" OR ")
 		}
-		query, xargs := w.Rebuild()
+		query, xargs := w.rebuild()
 		fw("(%s)", query)
 		args = append(args, xargs...)
 	}
@@ -316,7 +316,7 @@ func (s *Stmt) buildLimit() (limit string) {
 func (db *DB) MustExec(query string, args ...interface{}) sql.Result {
 	result, err := db.Exec(query, args...)
 	if err != nil {
-		panic(err)
+		panic(WrapError(err))
 	}
 	return result
 }
@@ -325,7 +325,7 @@ func (db *DB) MustExec(query string, args ...interface{}) sql.Result {
 func (s *Stmt) Create() error {
 	info, query, args, err := s.buildCreate()
 	if err != nil {
-		return err
+		return WrapError(err)
 	}
 
 	dumpSQL(query, args...)
@@ -355,7 +355,7 @@ func (s *Stmt) MustCreate() {
 func (s *Stmt) CreateSQL() string {
 	_, query, args, err := s.buildCreate()
 	if err != nil {
-		panic(err)
+		panic(WrapError(err))
 	}
 	return strSQL(query, args...)
 }
@@ -364,7 +364,7 @@ func (s *Stmt) CreateSQL() string {
 func (s *Stmt) Find(out interface{}) error {
 	query, args, err := s.buildSelect()
 	if err != nil {
-		return err
+		return WrapError(err)
 	}
 
 	dumpSQL(query, args...)
@@ -381,7 +381,7 @@ func (s *Stmt) MustFind(out interface{}) {
 func (s *Stmt) FindSQL() string {
 	query, args, err := s.buildSelect()
 	if err != nil {
-		panic(err)
+		panic(WrapError(err))
 	}
 	return strSQL(query, args...)
 }
@@ -430,17 +430,17 @@ func (s *Stmt) updateModel(model interface{}) error {
 
 // UpdateMap ...
 func (s *Stmt) UpdateMap(updates M) error {
-	return s.updateMap(updates, false)
+	return WrapError(s.updateMap(updates, false))
 }
 
 // UpdateMapAnyway ...
 func (s *Stmt) UpdateMapAnyway(updates M) error {
-	return s.updateMap(updates, true)
+	return WrapError(s.updateMap(updates, true))
 }
 
 // UpdateModel ...
 func (s *Stmt) UpdateModel(model interface{}) error {
-	return s.updateModel(model)
+	return WrapError(s.updateModel(model))
 }
 
 // MustUpdateMap ...
@@ -460,7 +460,7 @@ func (s *Stmt) MustUpdateMapAnyway(updates M) {
 func (s *Stmt) UpdateMapSQL(updates M) string {
 	query, args, err := s.buildUpdateMap(updates)
 	if err != nil {
-		panic(err)
+		panic(WrapError(err))
 	}
 	return strSQL(query, args...)
 }
@@ -468,7 +468,7 @@ func (s *Stmt) UpdateMapSQL(updates M) string {
 func (s *Stmt) UpdateModelSQL(model interface{}) string {
 	query, args, err := s.buildUpdateModel(model)
 	if err != nil {
-		panic(err)
+		panic(WrapError(err))
 	}
 	return strSQL(query, args...)
 }
@@ -495,12 +495,12 @@ func (s *Stmt) _delete(anyway bool) error {
 
 // Delete ...
 func (s *Stmt) Delete() error {
-	return s._delete(false)
+	return WrapError(s._delete(false))
 }
 
 // DeleteAnyway ...
 func (s *Stmt) DeleteAnyway() error {
-	return s._delete(true)
+	return WrapError(s._delete(true))
 }
 
 // MustDelete ...
@@ -520,7 +520,7 @@ func (s *Stmt) MustDeleteAnyway() {
 func (s *Stmt) DeleteSQL() string {
 	query, args, err := s.buildDelete()
 	if err != nil {
-		panic(err)
+		panic(WrapError(err))
 	}
 	return strSQL(query, args...)
 }
