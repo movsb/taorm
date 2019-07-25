@@ -26,7 +26,11 @@ func isColumnField(field reflect.StructField) bool {
 	if !ast.IsExported(field.Name) {
 		return false
 	}
-	if field.Type.Kind() == reflect.Struct || field.Type.Kind() == reflect.Ptr {
+	ty := field.Type.Kind()
+	switch ty {
+	case reflect.Slice, reflect.Chan, reflect.Map, reflect.Func:
+		return false
+	case reflect.Struct, reflect.Ptr:
 		dummy := reflect.NewAt(field.Type, unsafe.Pointer(nil)).Interface()
 		_, scanable := dummy.(sql.Scanner)
 		_, valueable := dummy.(driver.Valuer)
