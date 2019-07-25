@@ -66,6 +66,15 @@ func (db *DB) TxCall(callback func(tx *DB) error) error {
 	return nil
 }
 
+func (db *DB) MustTxCall(callback func(tx *DB)) {
+	if err := db.TxCall(func(tx *DB) error {
+		callback(tx)
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+}
+
 func (db *DB) Model(model interface{}) *Stmt {
 	stmt := &Stmt{
 		db:         db,
