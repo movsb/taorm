@@ -96,3 +96,10 @@ func (db *DB) From(table string) *Stmt {
 	}
 	return stmt
 }
+
+func (db *DB) Raw(query string, args ...interface{}) _Finder {
+	stmt := &Stmt{}
+	stmt.raw.query = query
+	stmt.raw.args = args
+	return stmt
+}

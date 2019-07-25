@@ -45,9 +45,15 @@ func (w *_Where) rebuild() (query string, args []interface{}) {
 	return sb.String(), args
 }
 
+type _RawQuery struct {
+	query string
+	args  []interface{}
+}
+
 // Stmt is an SQL statement.
 type Stmt struct {
 	db              *DB
+	raw             _RawQuery // not set if query == ""
 	model           interface{}
 	info            *_StructInfo
 	tableNames      []string
@@ -170,6 +176,7 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 
 func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
 	panicIf(len(s.tableNames) != 1, "model length is not 1")
+	panicIf(s.raw.query != "", "cannot use raw here")
 	info, err := getRegistered(s.model)
 	if err != nil {
 		return info, "", nil, err
@@ -182,6 +189,10 @@ func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
 }
 
 func (s *Stmt) buildSelect(isCount bool) (string, []interface{}, error) {
+	if s.raw.query != "" {
+		return s.raw.query, s.raw.args, nil
+	}
+
 	panicIf(len(s.tableNames) == 0, "model is empty")
 
 	var strFields string
@@ -236,6 +247,7 @@ func (s *Stmt) buildSelect(isCount bool) (string, []interface{}, error) {
 
 func (s *Stmt) buildUpdateMap(fields map[string]interface{}) (string, []interface{}, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
+	panicIf(s.raw.query != "", "cannot use raw here")
 	var args []interface{}
 	query := fmt.Sprintf(`UPDATE %s SET `, strings.Join(s.tableNames, ","))
 
@@ -271,6 +283,7 @@ func (s *Stmt) buildUpdateMap(fields map[string]interface{}) (string, []interfac
 
 func (s *Stmt) buildUpdateModel(model interface{}) (string, []interface{}, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
+	panicIf(s.raw.query != "", "cannot use raw here")
 	query := s.info.updatestr
 	args := s.info.ifacesOf(model)
 	whereQuery, whereArgs := s.buildWheres()
@@ -281,6 +294,7 @@ func (s *Stmt) buildUpdateModel(model interface{}) (string, []interface{}, error
 
 func (s *Stmt) buildDelete() (string, []interface{}, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
+	panicIf(s.raw.query != "", "cannot use raw here")
 	var args []interface{}
 	query := fmt.Sprintf(`DELETE FROM %s`, strings.Join(s.tableNames, ","))
 

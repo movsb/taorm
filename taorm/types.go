@@ -11,3 +11,12 @@ type _SQLCommon interface {
 type Expr string
 
 type M map[string]interface{}
+
+type _Finder interface {
+	Find(out interface{}) error
+	MustFind(out interface{})
+	FindSQL() string
+	Count(out interface{}) error
+	MustCount(out interface{})
+	CountSQL() string
+}

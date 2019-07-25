@@ -66,6 +66,10 @@ func TestSQLs(t *testing.T) {
 			"SELECT COUNT(1) FROM users WHERE (age=28)",
 			tdb.From("users").Where("age=?", 28).CountSQL(),
 		},
+		{
+			"SELECT * FROM users WHERE (id=1 AND age=28)",
+			tdb.Raw("SELECT * FROM users WHERE (id=? AND age=?)", 1, 28).FindSQL(),
+		},
 	}
 	for _, test := range tests {
 		if test.want != test.got {
