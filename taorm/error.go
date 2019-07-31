@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	reErr1062 = regexp.MustCompile(`Duplicate entry '([^']+)' for key '([^']+)'`)
+	reErr1062 = regexp.MustCompile(`Duplicate entry '([^']*)' for key '([^']+)'`)
 )
 
 // Error all errors wrapper.
