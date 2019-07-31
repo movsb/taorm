@@ -113,3 +113,15 @@ type NotStructError struct {
 func (e NotStructError) Error() string {
 	return fmt.Sprintf("taorm: not a struct: `%v'", e.Kind)
 }
+
+func IsNotFoundError(err error) bool {
+	if err == sql.ErrNoRows {
+		return true
+	}
+	if te, ok := err.(*Error); ok {
+		if te.Raw == sql.ErrNoRows {
+			return true
+		}
+	}
+	return false
+}
