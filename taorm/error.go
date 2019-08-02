@@ -74,13 +74,13 @@ func WrapError(err error) error {
 
 var (
 	// ErrInternal ...
-	ErrInternal = errors.New("taorm: internal error")
+	ErrInternal = errors.New("internal error")
 	// ErrNoWhere ...
-	ErrNoWhere = errors.New("taorm: no wheres")
+	ErrNoWhere = errors.New("no wheres")
 	// ErrNoFields ...
-	ErrNoFields = errors.New("taorm: no fields")
+	ErrNoFields = errors.New("no fields")
 	// ErrInvalidOut ...
-	ErrInvalidOut = errors.New("taorm: invalid out")
+	ErrInvalidOut = errors.New("invalid out")
 )
 
 // NotFoundError ...

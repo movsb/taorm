@@ -111,7 +111,9 @@ func (db *DB) From(table string) *Stmt {
 
 // Raw executes a raw SQL query that returns rows.
 func (db *DB) Raw(query string, args ...interface{}) Finder {
-	stmt := &Stmt{}
+	stmt := &Stmt{
+		db: db,
+	}
 	stmt.raw.query = query
 	stmt.raw.args = args
 	return stmt
