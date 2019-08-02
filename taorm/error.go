@@ -73,12 +73,17 @@ func WrapError(err error) error {
 }
 
 var (
-	ErrInternal   = errors.New("taorm: internal error")
-	ErrNoWhere    = errors.New("taorm: no wheres")
-	ErrNoFields   = errors.New("taorm: no fields")
+	// ErrInternal ...
+	ErrInternal = errors.New("taorm: internal error")
+	// ErrNoWhere ...
+	ErrNoWhere = errors.New("taorm: no wheres")
+	// ErrNoFields ...
+	ErrNoFields = errors.New("taorm: no fields")
+	// ErrInvalidOut ...
 	ErrInvalidOut = errors.New("taorm: invalid out")
 )
 
+// NotFoundError ...
 type NotFoundError struct {
 }
 
@@ -114,6 +119,7 @@ func (e NotStructError) Error() string {
 	return fmt.Sprintf("taorm: not a struct: `%v'", e.Kind)
 }
 
+// IsNotFoundError ...
 func IsNotFoundError(err error) bool {
 	if err == sql.ErrNoRows {
 		return true

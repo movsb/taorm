@@ -8,7 +8,7 @@ import (
 
 // ScanRows scans result rows into out.
 //
-// out can be either *Struct, *[]Struct, or *[]*Struct.
+// out can be either *primitive, *Struct, *[]Struct, or *[]*Struct.
 func ScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{}) error {
 	var err error
 	rows, err := tx.Query(query, args...)

@@ -66,6 +66,7 @@ func (db *DB) TxCall(callback func(tx *DB) error) error {
 	return nil
 }
 
+// MustTxCall ...
 func (db *DB) MustTxCall(callback func(tx *DB)) {
 	if err := db.TxCall(func(tx *DB) error {
 		callback(tx)
@@ -75,6 +76,7 @@ func (db *DB) MustTxCall(callback func(tx *DB)) {
 	}
 }
 
+// Model ...
 func (db *DB) Model(model interface{}) *Stmt {
 	stmt := &Stmt{
 		db:         db,
@@ -96,6 +98,7 @@ func (db *DB) Model(model interface{}) *Stmt {
 	return stmt
 }
 
+// From ...
 func (db *DB) From(table string) *Stmt {
 	stmt := &Stmt{
 		db:         db,
@@ -106,7 +109,8 @@ func (db *DB) From(table string) *Stmt {
 	return stmt
 }
 
-func (db *DB) Raw(query string, args ...interface{}) _Finder {
+// Raw executes a raw SQL query that returns rows.
+func (db *DB) Raw(query string, args ...interface{}) Finder {
 	stmt := &Stmt{}
 	stmt.raw.query = query
 	stmt.raw.args = args

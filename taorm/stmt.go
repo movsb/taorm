@@ -67,11 +67,13 @@ type Stmt struct {
 	offset          int64
 }
 
+// From ...
 func (s *Stmt) From(table string) *Stmt {
 	s.tableNames = append(s.tableNames, table)
 	return s
 }
 
+// InnerJoin ...
 func (s *Stmt) InnerJoin(table string, on string) *Stmt {
 	q := " INNER JOIN " + table
 	if on != "" {
@@ -81,6 +83,7 @@ func (s *Stmt) InnerJoin(table string, on string) *Stmt {
 	return s
 }
 
+// Select ...
 func (s *Stmt) Select(fields string) *Stmt {
 	if len(fields) > 0 {
 		s.fields = append(s.fields, fields)
@@ -88,6 +91,7 @@ func (s *Stmt) Select(fields string) *Stmt {
 	return s
 }
 
+// Where ...
 func (s *Stmt) Where(query string, args ...interface{}) *Stmt {
 	w := _Where{
 		query: query,
@@ -97,6 +101,7 @@ func (s *Stmt) Where(query string, args ...interface{}) *Stmt {
 	return s
 }
 
+// WhereIf ...
 func (s *Stmt) WhereIf(cond bool, query string, args ...interface{}) *Stmt {
 	if cond {
 		s.Where(query, args...)
@@ -104,6 +109,7 @@ func (s *Stmt) WhereIf(cond bool, query string, args ...interface{}) *Stmt {
 	return s
 }
 
+// Or ...
 func (s *Stmt) Or(query string, args ...interface{}) *Stmt {
 	w := _Where{
 		query: query,
@@ -113,21 +119,25 @@ func (s *Stmt) Or(query string, args ...interface{}) *Stmt {
 	return s
 }
 
+// GroupBy ...
 func (s *Stmt) GroupBy(groupBy string) *Stmt {
 	s.groupBy = groupBy
 	return s
 }
 
+// OrderBy ...
 func (s *Stmt) OrderBy(orderBy string) *Stmt {
 	s.orderBy = orderBy
 	return s
 }
 
+// Limit ...
 func (s *Stmt) Limit(limit int64) *Stmt {
 	s.limit = limit
 	return s
 }
 
+// Offset ...
 func (s *Stmt) Offset(offset int64) *Stmt {
 	s.offset = offset
 	return s
@@ -371,6 +381,7 @@ func (s *Stmt) MustCreate() {
 	}
 }
 
+// CreateSQL ...
 func (s *Stmt) CreateSQL() string {
 	_, query, args, err := s.buildCreate()
 	if err != nil {
@@ -397,6 +408,7 @@ func (s *Stmt) MustFind(out interface{}) {
 	}
 }
 
+// FindSQL ...
 func (s *Stmt) FindSQL() string {
 	query, args, err := s.buildSelect(false)
 	if err != nil {
@@ -405,6 +417,7 @@ func (s *Stmt) FindSQL() string {
 	return strSQL(query, args...)
 }
 
+// Count ...
 func (s *Stmt) Count(out interface{}) error {
 	query, args, err := s.buildSelect(true)
 	if err != nil {
@@ -415,12 +428,14 @@ func (s *Stmt) Count(out interface{}) error {
 	return ScanRows(out, s.db, query, args...)
 }
 
+// MustCount ...
 func (s *Stmt) MustCount(out interface{}) {
 	if err := s.Count(out); err != nil {
 		panic(err)
 	}
 }
 
+// CountSQL ...
 func (s *Stmt) CountSQL() string {
 	query, args, err := s.buildSelect(true)
 	if err != nil {
@@ -500,6 +515,7 @@ func (s *Stmt) MustUpdateMapAnyway(updates M) {
 	}
 }
 
+// UpdateMapSQL ...
 func (s *Stmt) UpdateMapSQL(updates M) string {
 	query, args, err := s.buildUpdateMap(updates)
 	if err != nil {
@@ -508,6 +524,7 @@ func (s *Stmt) UpdateMapSQL(updates M) string {
 	return strSQL(query, args...)
 }
 
+// UpdateModelSQL ...
 func (s *Stmt) UpdateModelSQL(model interface{}) string {
 	query, args, err := s.buildUpdateModel(model)
 	if err != nil {
@@ -560,6 +577,7 @@ func (s *Stmt) MustDeleteAnyway() {
 	}
 }
 
+// DeleteSQL ...
 func (s *Stmt) DeleteSQL() string {
 	query, args, err := s.buildDelete()
 	if err != nil {
