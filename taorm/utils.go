@@ -52,6 +52,8 @@ func getColumnName(field reflect.StructField) string {
 	for _, kv := range kvs {
 		s := strings.Split(kv, ":")
 		switch s[0] {
+		case "-":
+			return ""
 		case "name":
 			if len(s) > 1 {
 				return s[1]
