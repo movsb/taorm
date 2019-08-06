@@ -28,8 +28,13 @@ func TestSQLs(t *testing.T) {
 	}{
 		{
 			"SELECT * FROM users",
-			tdb.From("users").FindSQL(),
-		}, {
+			tdb.From(User{}).FindSQL(),
+		},
+		{
+			"SELECT * FROM users",
+			tdb.From(User{ID: 28}).FindSQL(),
+		},
+		{
 			"INSERT INTO users (name,age) VALUES (tao,18)",
 			tdb.Model(User{
 				Name: "tao",
@@ -60,11 +65,15 @@ func TestSQLs(t *testing.T) {
 		},
 		{
 			"DELETE FROM users WHERE (id=1)",
-			tdb.From("users").Where("id=?", 1).DeleteSQL(),
+			tdb.From(User{}).Where("id=?", 1).DeleteSQL(),
+		},
+		{
+			"DELETE FROM users WHERE (id=28)",
+			tdb.Model(User{ID: 28}).DeleteSQL(),
 		},
 		{
 			"SELECT COUNT(1) FROM users WHERE (age=28)",
-			tdb.From("users").Where("age=?", 28).CountSQL(),
+			tdb.From(User{}).Where("age=?", 28).CountSQL(),
 		},
 		{
 			"SELECT * FROM users WHERE (id=1 AND age=28)",

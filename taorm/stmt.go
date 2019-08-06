@@ -2,7 +2,6 @@ package taorm
 
 import (
 	"bytes"
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
@@ -68,8 +67,16 @@ type Stmt struct {
 }
 
 // From ...
-func (s *Stmt) From(table string) *Stmt {
-	s.tableNames = append(s.tableNames, table)
+// table can be either string or struct.
+func (s *Stmt) From(table interface{}) *Stmt {
+	switch typed := table.(type) {
+	case string:
+		s.tableNames = append(s.tableNames, typed)
+	default:
+		if err := s.tryFindTableName(table); err != nil {
+			panic(WrapError(err))
+		}
+	}
 	return s
 }
 
@@ -151,8 +158,8 @@ func (s *Stmt) noWheres() bool {
 
 func (s *Stmt) buildWheres() (string, []interface{}) {
 	if s.model != nil {
-		id := s.info.getPrimaryKey(s.model)
-		s.Where("id=?", id)
+		id, ok := s.info.getPrimaryKey(s.model)
+		s.WhereIf(ok, "id=?", id)
 	}
 
 	if s.noWheres() {
@@ -198,9 +205,24 @@ func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
 	return info, info.insertstr, args, nil
 }
 
-func (s *Stmt) buildSelect(isCount bool) (string, []interface{}, error) {
+func (s *Stmt) tryFindTableName(out interface{}) error {
+	info, err := getRegistered(out)
+	if err != nil {
+		return err
+	}
+	s.tableNames = append(s.tableNames, info.tableName)
+	return nil
+}
+
+func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}, error) {
 	if s.raw.query != "" {
 		return s.raw.query, s.raw.args, nil
+	}
+
+	if len(s.tableNames) == 0 {
+		if err := s.tryFindTableName(out); err != nil {
+			return "", nil, err
+		}
 	}
 
 	panicIf(len(s.tableNames) == 0, "model is empty")
@@ -341,15 +363,6 @@ func (s *Stmt) buildLimit() (limit string) {
 	return
 }
 
-// MustExec ...
-func (db *DB) MustExec(query string, args ...interface{}) sql.Result {
-	result, err := db.Exec(query, args...)
-	if err != nil {
-		panic(WrapError(err))
-	}
-	return result
-}
-
 // Create ...
 func (s *Stmt) Create() error {
 	info, query, args, err := s.buildCreate()
@@ -392,7 +405,7 @@ func (s *Stmt) CreateSQL() string {
 
 // Find ...
 func (s *Stmt) Find(out interface{}) error {
-	query, args, err := s.buildSelect(false)
+	query, args, err := s.buildSelect(out, false)
 	if err != nil {
 		return WrapError(err)
 	}
@@ -410,7 +423,7 @@ func (s *Stmt) MustFind(out interface{}) {
 
 // FindSQL ...
 func (s *Stmt) FindSQL() string {
-	query, args, err := s.buildSelect(false)
+	query, args, err := s.buildSelect(nil, false)
 	if err != nil {
 		panic(WrapError(err))
 	}
@@ -419,7 +432,7 @@ func (s *Stmt) FindSQL() string {
 
 // Count ...
 func (s *Stmt) Count(out interface{}) error {
-	query, args, err := s.buildSelect(true)
+	query, args, err := s.buildSelect(nil, true)
 	if err != nil {
 		return WrapError(err)
 	}
@@ -437,7 +450,7 @@ func (s *Stmt) MustCount(out interface{}) {
 
 // CountSQL ...
 func (s *Stmt) CountSQL() string {
-	query, args, err := s.buildSelect(true)
+	query, args, err := s.buildSelect(nil, true)
 	if err != nil {
 		panic(WrapError(err))
 	}

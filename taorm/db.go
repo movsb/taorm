@@ -99,12 +99,14 @@ func (db *DB) Model(model interface{}) *Stmt {
 }
 
 // From ...
-func (db *DB) From(table string) *Stmt {
+func (db *DB) From(table interface{}) *Stmt {
 	stmt := &Stmt{
-		db:         db,
-		tableNames: []string{table},
-		limit:      -1,
-		offset:     -1,
+		db:     db,
+		limit:  -1,
+		offset: -1,
+	}
+	if err := stmt.tryFindTableName(table); err != nil {
+		panic(WrapError(err))
 	}
 	return stmt
 }
@@ -117,4 +119,51 @@ func (db *DB) Raw(query string, args ...interface{}) Finder {
 	stmt.raw.query = query
 	stmt.raw.args = args
 	return stmt
+}
+
+// --- stmt impl. ---
+//
+// Below are some commonly used functions to begin a preparing.
+
+// MustExec ...
+func (db *DB) MustExec(query string, args ...interface{}) sql.Result {
+	result, err := db.Exec(query, args...)
+	if err != nil {
+		panic(WrapError(err))
+	}
+	return result
+}
+
+func (db *DB) _New() *Stmt {
+	stmt := &Stmt{
+		db:     db,
+		limit:  -1,
+		offset: -1,
+	}
+	return stmt
+}
+
+// Select ...
+func (db *DB) Select(fields string) *Stmt {
+	return db._New().Select(fields)
+}
+
+// Where ...
+func (db *DB) Where(query string, args ...interface{}) *Stmt {
+	return db._New().Where(query, args...)
+}
+
+// WhereIf ...
+func (db *DB) WhereIf(cond bool, query string, args ...interface{}) *Stmt {
+	return db._New().WhereIf(cond, query, args...)
+}
+
+// Find ...
+func (db *DB) Find(out interface{}) error {
+	return db._New().Find(out)
+}
+
+// MustFind ...
+func (db *DB) MustFind(out interface{}) {
+	db._New().MustFind(out)
 }

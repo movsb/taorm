@@ -80,8 +80,10 @@ func (s *_StructInfo) setPrimaryKey(out interface{}, id int64) {
 	}
 }
 
-func (s *_StructInfo) getPrimaryKey(out interface{}) interface{} {
-	return s.valueOf(out, s.pkeyField).Interface()
+func (s *_StructInfo) getPrimaryKey(out interface{}) (interface{}, bool) {
+	zero := reflect.Zero(s.pkeyField._type).Interface()
+	pkv := s.valueOf(out, s.pkeyField).Interface()
+	return pkv, pkv != zero
 }
 
 // structs maps struct type name to its info.
