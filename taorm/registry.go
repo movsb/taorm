@@ -155,12 +155,14 @@ func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
 	return structInfo, nil
 }
 
+// _struct can be any struct-related types.
+// e.g.: struct{}, *struct{}, **struct{}, []struct{}, []*struct, []*struct{}, *[]strcut{}, *[]*struct{} ...
 func structType(_struct interface{}) (reflect.Type, error) {
 	ty := reflect.TypeOf(_struct)
 	if ty == nil {
 		return nil, &NotStructError{}
 	}
-	if ty.Kind() == reflect.Ptr {
+	for ty.Kind() == reflect.Ptr || ty.Kind() == reflect.Slice {
 		ty = ty.Elem()
 	}
 	if ty.Kind() != reflect.Struct {
