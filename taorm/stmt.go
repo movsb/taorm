@@ -59,7 +59,6 @@ type Stmt struct {
 	innerJoinTables []string
 	fields          []string
 	ands            []_Where
-	ors             []_Where
 	groupBy         string
 	orderBy         string
 	limit           int64
@@ -116,16 +115,6 @@ func (s *Stmt) WhereIf(cond bool, query string, args ...interface{}) *Stmt {
 	return s
 }
 
-// Or ...
-func (s *Stmt) Or(query string, args ...interface{}) *Stmt {
-	w := _Where{
-		query: query,
-		args:  args,
-	}
-	s.ors = append(s.ors, w)
-	return s
-}
-
 // GroupBy ...
 func (s *Stmt) GroupBy(groupBy string) *Stmt {
 	s.groupBy = groupBy
@@ -153,7 +142,7 @@ func (s *Stmt) Offset(offset int64) *Stmt {
 // noWheres returns true if no SQL conditions.
 // Includes and, or.
 func (s *Stmt) noWheres() bool {
-	return len(s.ands)+len(s.ors) <= 0
+	return len(s.ands) <= 0
 }
 
 func (s *Stmt) buildWheres() (string, []interface{}) {
@@ -175,14 +164,6 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 	for i, w := range s.ands {
 		if i > 0 {
 			sb.WriteString(" AND ")
-		}
-		query, xargs := w.rebuild()
-		fw("(%s)", query)
-		args = append(args, xargs...)
-	}
-	for i, w := range s.ors {
-		if i > 0 {
-			sb.WriteString(" OR ")
 		}
 		query, xargs := w.rebuild()
 		fw("(%s)", query)
