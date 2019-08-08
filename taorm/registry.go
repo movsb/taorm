@@ -184,5 +184,5 @@ func getRegistered(_struct interface{}) (*_StructInfo, error) {
 		return si, nil
 	}
 	rwLock.RUnlock()
-	return nil, fmt.Errorf("not registered:" + name)
+	return register(ty, "")
 }
