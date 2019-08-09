@@ -191,6 +191,9 @@ func (s *Stmt) tryFindTableName(out interface{}) error {
 	if err != nil {
 		return err
 	}
+	if info.tableName == "" {
+		return fmt.Errorf("trying to use auto-registered struct table name")
+	}
 	s.tableNames = append(s.tableNames, info.tableName)
 	return nil
 }
