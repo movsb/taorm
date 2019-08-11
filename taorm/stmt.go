@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/movsb/taorm/filter"
@@ -291,7 +292,13 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 	args = append(args, whereArgs...)
 
 	query += s.buildGroupBy()
-	query += s.buildOrderBy()
+	if orderBy, err := s.buildOrderBy(); err != nil {
+		return "", nil, err
+	} else {
+		if orderBy != "" {
+			query += orderBy
+		}
+	}
 	query += s.buildLimit()
 
 	return query, args, nil
@@ -366,11 +373,28 @@ func (s *Stmt) buildGroupBy() (groupBy string) {
 	return
 }
 
-func (s *Stmt) buildOrderBy() (orderBy string) {
-	if s.orderBy != "" {
-		orderBy = fmt.Sprintf(` ORDER BY %s`, s.orderBy)
+var regexpOrderBy = regexp.MustCompile(`^ *(\w+) *(\w+)? *$`)
+
+func (s *Stmt) buildOrderBy() (string, error) {
+	orderBy := " ORDER BY "
+	if s.orderBy == "" {
+		return "", nil
 	}
-	return
+	parts := strings.Split(s.orderBy, ",")
+	orderBys := []string{}
+	for _, part := range parts {
+		matches := regexpOrderBy.FindStringSubmatch(part)
+		if len(matches) != 3 {
+			continue
+		}
+		t := matches[1]
+		if matches[2] != "" {
+			t += " " + matches[2]
+		}
+		orderBys = append(orderBys, t)
+	}
+	orderBy += strings.Join(orderBys, ",")
+	return orderBy, nil
 }
 
 func (s *Stmt) buildLimit() (limit string) {
