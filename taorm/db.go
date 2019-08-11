@@ -108,6 +108,9 @@ func (db *DB) From(table interface{}) *Stmt {
 	if err := stmt.tryFindTableName(table); err != nil {
 		panic(WrapError(err))
 	}
+	if _, ok := table.(string); table != nil && !ok {
+		stmt.fromTable = table
+	}
 	return stmt
 }
 

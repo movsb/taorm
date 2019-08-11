@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/movsb/taorm/filter"
 )
 
 // _Where ...
@@ -49,11 +51,18 @@ type _RawQuery struct {
 	args  []interface{}
 }
 
+type _Filter struct {
+	filter string
+	mapper filter.Mapper
+}
+
 // Stmt is an SQL statement.
 type Stmt struct {
 	db              *DB
 	raw             _RawQuery // not set if query == ""
+	filter          _Filter
 	model           interface{}
+	fromTable       interface{}
 	info            *_StructInfo
 	tableNames      []string
 	innerJoinTables []string
@@ -139,6 +148,15 @@ func (s *Stmt) Offset(offset int64) *Stmt {
 	return s
 }
 
+// Filter ...
+func (s *Stmt) Filter(expr string, mapper filter.Mapper) *Stmt {
+	s.filter = _Filter{
+		filter: expr,
+		mapper: mapper,
+	}
+	return s
+}
+
 // noWheres returns true if no SQL conditions.
 // Includes and, or.
 func (s *Stmt) noWheres() bool {
@@ -201,6 +219,24 @@ func (s *Stmt) tryFindTableName(out interface{}) error {
 func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}, error) {
 	if s.raw.query != "" {
 		return s.raw.query, s.raw.args, nil
+	}
+
+	if s.filter.filter != "" {
+		info, err := getRegistered(out)
+		if err != nil {
+			return "", nil, err
+		}
+		query, args, err := filter.Filter(
+			func(field string) reflect.Type {
+				return info.fields[field]._type // maybe not exist
+			},
+			s.filter.filter,
+			s.filter.mapper,
+		)
+		if err != nil {
+			return "", nil, err
+		}
+		s.WhereIf(query != "", query, args...)
 	}
 
 	if len(s.tableNames) == 0 {
@@ -407,7 +443,7 @@ func (s *Stmt) MustFind(out interface{}) {
 
 // FindSQL ...
 func (s *Stmt) FindSQL() string {
-	query, args, err := s.buildSelect(nil, false)
+	query, args, err := s.buildSelect(s.model, false)
 	if err != nil {
 		panic(WrapError(err))
 	}
@@ -416,7 +452,7 @@ func (s *Stmt) FindSQL() string {
 
 // Count ...
 func (s *Stmt) Count(out interface{}) error {
-	query, args, err := s.buildSelect(nil, true)
+	query, args, err := s.buildSelect(s.fromTable, true)
 	if err != nil {
 		return WrapError(err)
 	}
@@ -434,7 +470,7 @@ func (s *Stmt) MustCount(out interface{}) {
 
 // CountSQL ...
 func (s *Stmt) CountSQL() string {
-	query, args, err := s.buildSelect(nil, true)
+	query, args, err := s.buildSelect(s.fromTable, true)
 	if err != nil {
 		panic(WrapError(err))
 	}
