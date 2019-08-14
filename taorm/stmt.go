@@ -82,16 +82,30 @@ func (s *Stmt) From(table interface{}) *Stmt {
 	case string:
 		s.tableNames = append(s.tableNames, typed)
 	default:
-		if err := s.tryFindTableName(table); err != nil {
+		name, err := s.tryFindTableName(table)
+		if err != nil {
 			panic(WrapError(err))
 		}
+		s.tableNames = append(s.tableNames, name)
 	}
 	return s
 }
 
 // InnerJoin ...
-func (s *Stmt) InnerJoin(table string, on string) *Stmt {
-	q := " INNER JOIN " + table
+func (s *Stmt) InnerJoin(table interface{}, on string) *Stmt {
+	name := ""
+	switch typed := table.(type) {
+	case string:
+		name = typed
+	default:
+		n, err := s.tryFindTableName(typed)
+		if err != nil {
+			panic(WrapError(err))
+		}
+		name = n
+	}
+
+	q := " INNER JOIN " + name
 	if on != "" {
 		q += " ON " + on
 	}
@@ -205,16 +219,15 @@ func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
 	return info, info.insertstr, args, nil
 }
 
-func (s *Stmt) tryFindTableName(out interface{}) error {
+func (s *Stmt) tryFindTableName(out interface{}) (string, error) {
 	info, err := getRegistered(out)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if info.tableName == "" {
-		return fmt.Errorf("trying to use auto-registered struct table name")
+		return "", fmt.Errorf("trying to use auto-registered struct table name")
 	}
-	s.tableNames = append(s.tableNames, info.tableName)
-	return nil
+	return info.tableName, nil
 }
 
 func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}, error) {
@@ -238,12 +251,15 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 			return "", nil, err
 		}
 		s.WhereIf(query != "", query, args...)
+		s.filter.filter = ""
 	}
 
 	if len(s.tableNames) == 0 {
-		if err := s.tryFindTableName(out); err != nil {
+		name, err := s.tryFindTableName(out)
+		if err != nil {
 			return "", nil, err
 		}
+		s.tableNames = append(s.tableNames, name)
 	}
 
 	panicIf(len(s.tableNames) == 0, "model is empty")

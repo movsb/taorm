@@ -100,18 +100,23 @@ func (db *DB) Model(model interface{}) *Stmt {
 
 // From ...
 func (db *DB) From(table interface{}) *Stmt {
-	stmt := &Stmt{
+	s := &Stmt{
 		db:     db,
 		limit:  -1,
 		offset: -1,
 	}
-	if err := stmt.tryFindTableName(table); err != nil {
-		panic(WrapError(err))
+	switch typed := table.(type) {
+	case string:
+		s.tableNames = append(s.tableNames, typed)
+	default:
+		name, err := s.tryFindTableName(table)
+		if err != nil {
+			panic(WrapError(err))
+		}
+		s.tableNames = append(s.tableNames, name)
+		s.fromTable = table
 	}
-	if _, ok := table.(string); table != nil && !ok {
-		stmt.fromTable = table
-	}
-	return stmt
+	return s
 }
 
 // Raw executes a raw SQL query that returns rows.
