@@ -1,8 +1,11 @@
 package filter
 
 import (
+	"errors"
 	"fmt"
 )
+
+var errSkipFilter = errors.New("filter: should skip")
 
 // UnknownMapperError implies an unknown mapper error.
 type UnknownMapperError struct {

@@ -45,6 +45,7 @@ func Filter(fielder Fielder, filter string, mapper Mapper) (query string, args [
 //   (enumItem) => (key, enumItem, enum)
 // Override:
 //   (operator, strval)   => (query, args)
+//   (operator, strval)   => ()
 //
 func (i *_Filter) Filter(filter string) (string, []interface{}, error) {
 	tokenizer := NewTokenizer(filter)
@@ -66,8 +67,10 @@ func (i *_Filter) Filter(filter string) (string, []interface{}, error) {
 		if index != 0 {
 			query += " AND "
 		}
-		query += "(" + orQuery + ")"
-		args = append(args, orArgs...)
+		if orQuery != "" {
+			query += "(" + orQuery + ")"
+			args = append(args, orArgs...)
+		}
 	}
 
 	return query, args, nil
@@ -181,6 +184,10 @@ func (i *_Filter) callMapper(expr *Expression) error {
 			Query: query,
 			Args:  args,
 		}
+	// (operator, strval) => ()
+	case func(TokenType, string):
+		typed(expr.Operator.TokenType, raw)
+		return errSkipFilter
 	default:
 		return &UnknownMapperError{}
 	}
@@ -195,7 +202,12 @@ func (i *_Filter) filterAndExpression(andExpr *AndExpression) (query string, arg
 
 		// calls to mapper to see if user want to do some customizing
 		if err := i.callMapper(expr); err != nil {
-			return "", nil, err
+			switch err {
+			default:
+				return "", nil, err
+			case errSkipFilter:
+				continue
+			}
 		}
 
 		if expr.overrider == nil {
