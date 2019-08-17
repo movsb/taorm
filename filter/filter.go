@@ -27,7 +27,7 @@ func Filter(fielder Fielder, filter string, mapper Mapper) (query string, args [
 	return f.Filter(filter)
 }
 
-// Filter the result of the GORM query according to some conditions.
+// Filter the result of query according to some conditions.
 //
 // Mapper prototypes are:
 //
@@ -64,7 +64,7 @@ func (i *_Filter) Filter(filter string) (string, []interface{}, error) {
 		if err != nil {
 			return "", nil, err
 		}
-		if index != 0 {
+		if index != 0 && query != "" {
 			query += " AND "
 		}
 		if orQuery != "" {
