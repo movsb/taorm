@@ -2,6 +2,7 @@ package taorm
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -146,6 +147,7 @@ func (s *Stmt) GroupBy(groupBy string) *Stmt {
 }
 
 // OrderBy ...
+// TODO multiple orderbys
 func (s *Stmt) OrderBy(orderBy string) *Stmt {
 	s.orderBy = orderBy
 	return s
@@ -389,7 +391,7 @@ func (s *Stmt) buildGroupBy() (groupBy string) {
 	return
 }
 
-var regexpOrderBy = regexp.MustCompile(`^ *(\w+) *(\w+)? *$`)
+var regexpOrderBy = regexp.MustCompile(`^ *((\w+\.)?(\w+)) *(\w+)? *$`)
 
 func (s *Stmt) buildOrderBy() (string, error) {
 	orderBy := " ORDER BY "
@@ -400,14 +402,21 @@ func (s *Stmt) buildOrderBy() (string, error) {
 	orderBys := []string{}
 	for _, part := range parts {
 		matches := regexpOrderBy.FindStringSubmatch(part)
-		if len(matches) != 3 {
-			continue
+		if len(matches) != 5 {
+			return "", errors.New("invalid orderby")
 		}
-		t := matches[1]
-		if matches[2] != "" {
-			t += " " + matches[2]
+		table := matches[2]
+		column := matches[1]
+		order := matches[4]
+		// avoid column ambiguous
+		// "Error 1052: Column 'created_at' in order clause is ambiguous"
+		if table == "" && len(s.tableNames)+len(s.innerJoinTables) > 1 {
+			column = s.tableNames[0] + "." + column
 		}
-		orderBys = append(orderBys, t)
+		if order != "" {
+			column += " " + order
+		}
+		orderBys = append(orderBys, column)
 	}
 	orderBy += strings.Join(orderBys, ",")
 	return orderBy, nil

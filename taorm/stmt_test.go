@@ -15,6 +15,12 @@ type User struct {
 	Age  int
 }
 
+type Like struct {
+	ID     int64
+	UserID int64
+	LikeID int64
+}
+
 func TestSQLs(t *testing.T) {
 	db, err := sql.Open("mysql", "taorm:taorm@/taorm")
 	if err != nil {
@@ -22,6 +28,7 @@ func TestSQLs(t *testing.T) {
 	}
 	tdb := NewDB(db)
 	Register(User{}, "users")
+	Register(Like{}, "likes")
 	tests := []struct {
 		want string
 		got  string
@@ -79,10 +86,22 @@ func TestSQLs(t *testing.T) {
 			"SELECT * FROM users WHERE (id=1 AND age=28)",
 			tdb.Raw("SELECT * FROM users WHERE (id=? AND age=?)", 1, 28).FindSQL(),
 		},
+		{
+			"SELECT * FROM users ORDER BY id",
+			tdb.From(User{}).OrderBy("id").FindSQL(),
+		},
+		{
+			"SELECT users.* FROM users INNER JOIN likes ON users.id = likes.user_id ORDER BY users.id",
+			tdb.From(User{}).OrderBy("id").InnerJoin(Like{}, "users.id = likes.user_id").FindSQL(),
+		},
+		{
+			"SELECT users.* FROM users INNER JOIN likes ON users.id = likes.user_id ORDER BY users.id",
+			tdb.From(User{}).OrderBy("users.id").InnerJoin(Like{}, "users.id = likes.user_id").FindSQL(),
+		},
 	}
 	for _, test := range tests {
 		if test.want != test.got {
-			t.Fatal("not equal: ", test.want, "!=", test.got)
+			t.Fatalf("not equal: \n    want: %s\n     got: %s\n", test.want, test.got)
 		}
 	}
 }
