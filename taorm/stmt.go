@@ -195,6 +195,7 @@ func (s *Stmt) Filter(expr string, mapper filter.Mapper, _Struct ...interface{})
 		},
 		expr,
 		mapper,
+		info.tableName,
 	)
 	if err != nil {
 		panic(WrapError(err))

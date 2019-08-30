@@ -14,15 +14,17 @@ type Mapper map[string]interface{}
 type Fielder func(field string) reflect.Type
 
 type _Filter struct {
-	mapper  Mapper
-	fielder Fielder
+	mapper    Mapper
+	fielder   Fielder
+	tableName string
 }
 
 // Filter news an filter and calls its Filter method.
-func Filter(fielder Fielder, filter string, mapper Mapper) (query string, args []interface{}, err error) {
+func Filter(fielder Fielder, filter string, mapper Mapper, tableName string) (query string, args []interface{}, err error) {
 	f := &_Filter{
-		mapper:  mapper,
-		fielder: fielder,
+		mapper:    mapper,
+		fielder:   fielder,
+		tableName: tableName,
 	}
 	return f.Filter(filter)
 }
@@ -64,13 +66,14 @@ func (i *_Filter) Filter(filter string) (string, []interface{}, error) {
 		if err != nil {
 			return "", nil, err
 		}
+		if orQuery == "" {
+			continue
+		}
 		if index != 0 && query != "" {
 			query += " AND "
 		}
-		if orQuery != "" {
-			query += "(" + orQuery + ")"
-			args = append(args, orArgs...)
-		}
+		query += "(" + orQuery + ")"
+		args = append(args, orArgs...)
 	}
 
 	return query, args, nil
@@ -236,27 +239,27 @@ func (i *_Filter) filterAndExpression(andExpr *AndExpression) (query string, arg
 
 			switch expr.Operator.TokenType {
 			case TokenTypeEqual:
-				condition = fmt.Sprintf("%s = ?", columnName)
+				condition = fmt.Sprintf("%s.%s = ?", i.tableName, columnName)
 			case TokenTypeNotEqual:
-				condition = fmt.Sprintf("%s <> ?", columnName)
+				condition = fmt.Sprintf("%s.%s <> ?", i.tableName, columnName)
 			case TokenTypeInclude:
-				condition = fmt.Sprintf("%s LIKE ?", columnName)
+				condition = fmt.Sprintf("%s.%s LIKE ?", i.tableName, columnName)
 			case TokenTypeNotInclude:
-				condition = fmt.Sprintf("%s NOT LIKE ?", columnName)
+				condition = fmt.Sprintf("%s.%s NOT LIKE ?", i.tableName, columnName)
 			case TokenTypeStartsWith:
-				condition = fmt.Sprintf("%s LIKE ?", columnName)
+				condition = fmt.Sprintf("%s.%s LIKE ?", i.tableName, columnName)
 			case TokenTypeEndsWith:
-				condition = fmt.Sprintf("%s LIKE ?", columnName)
+				condition = fmt.Sprintf("%s.%s LIKE ?", i.tableName, columnName)
 			case TokenTypeMatch, TokenTypeNotMatch:
 				return "", nil, fmt.Errorf("not supported operator: %s", expr.Operator.TokenValue)
 			case TokenTypeGreaterThan:
-				condition = fmt.Sprintf("%s > ?", columnName)
+				condition = fmt.Sprintf("%s.%s > ?", i.tableName, columnName)
 			case TokenTypeLessThan:
-				condition = fmt.Sprintf("%s < ?", columnName)
+				condition = fmt.Sprintf("%s.%s < ?", i.tableName, columnName)
 			case TokenTypeGreaterThanOrEqual:
-				condition = fmt.Sprintf("%s >= ?", columnName)
+				condition = fmt.Sprintf("%s.%s >= ?", i.tableName, columnName)
 			case TokenTypeLessThanOrEqual:
-				condition = fmt.Sprintf("%s <= ?", columnName)
+				condition = fmt.Sprintf("%s.%s <= ?", i.tableName, columnName)
 			default:
 				return "", nil, fmt.Errorf("unknown operator: %s", expr.Operator.TokenValue)
 			}
