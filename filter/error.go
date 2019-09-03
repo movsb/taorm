@@ -23,6 +23,19 @@ func (e InvalidOrderByError) Error() string {
 	return "insight: invalid order by"
 }
 
+// InvalidOperatorError reports an invalid operator.
+type InvalidOperatorError struct {
+	Name     string
+	Operator TokenType
+}
+
+func (e InvalidOperatorError) Error() string {
+	return fmt.Sprintf(
+		"insight: invalid operator for field %s: %v (expect %v)",
+		e.Name, e.Operator, TokenTypeEqual,
+	)
+}
+
 // StructNotRegisteredError implies that a struct type has not been registered.
 type StructNotRegisteredError struct {
 }

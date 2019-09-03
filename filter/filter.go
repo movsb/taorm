@@ -48,6 +48,8 @@ func Filter(fielder Fielder, filter string, mapper Mapper, tableName string) (qu
 // Override:
 //   (operator, strval)   => (query, args)
 //   (operator, strval)   => ()
+//   (strval)             => ()
+//   (intval)             => ()
 //
 func (i *_Filter) Filter(filter string) (string, []interface{}, error) {
 	tokenizer := NewTokenizer(filter)
@@ -190,6 +192,28 @@ func (i *_Filter) callMapper(expr *Expression) error {
 	// (operator, strval) => ()
 	case func(TokenType, string):
 		typed(expr.Operator.TokenType, raw)
+		return errSkipFilter
+	case func(string):
+		if expr.Operator.TokenType != TokenTypeEqual {
+			return &InvalidOperatorError{
+				Name:     expr.Name,
+				Operator: expr.Operator.TokenType,
+			}
+		}
+		typed(raw)
+		return errSkipFilter
+	case func(int64):
+		if expr.Operator.TokenType != TokenTypeEqual {
+			return &InvalidOperatorError{
+				Name:     expr.Name,
+				Operator: expr.Operator.TokenType,
+			}
+		}
+		num, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil {
+			return err
+		}
+		typed(num)
 		return errSkipFilter
 	default:
 		return &UnknownMapperError{}
