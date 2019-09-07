@@ -25,6 +25,8 @@ func (e Error) Error() string {
 }
 
 // WrapError wraps all errors to tao error.
+//
+// If err is nil, wrapped error is nil too.
 func WrapError(err error) error {
 	if err == nil {
 		return nil
@@ -35,6 +37,7 @@ func WrapError(err error) error {
 		return err
 	}
 
+	// mysql errors
 	if myErr, ok := err.(*mysql.MySQLError); ok {
 		switch myErr.Number {
 		case 1062:
@@ -49,11 +52,13 @@ func WrapError(err error) error {
 		}
 	}
 
+	// official error constants
 	switch err {
 	case sql.ErrNoRows:
 		return &Error{Err: &NotFoundError{}, Raw: err}
 	}
 
+	// taorm error constants
 	switch err {
 	case ErrInternal:
 	case ErrNoWhere:
@@ -62,6 +67,7 @@ func WrapError(err error) error {
 		return &Error{Err: ErrInternal, Raw: err}
 	}
 
+	// taorm detailed errors
 	switch err.(type) {
 	case *NoPlaceToSaveFieldError:
 		return &Error{Err: ErrInternal, Raw: err}
@@ -69,6 +75,7 @@ func WrapError(err error) error {
 		return &Error{Err: ErrInternal, Raw: err}
 	}
 
+	// unhandled errors
 	return &Error{Err: ErrInternal, Raw: err}
 }
 
