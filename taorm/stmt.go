@@ -19,6 +19,7 @@ type _Where struct {
 
 func (w *_Where) rebuild() (query string, args []interface{}) {
 	sb := bytes.NewBuffer(nil)
+	sb.Grow(len(query)) // should we reserve capacity for slice too?
 	var i int
 	for _, c := range w.query {
 		switch c {
