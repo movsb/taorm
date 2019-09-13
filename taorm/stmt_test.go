@@ -71,6 +71,14 @@ func TestSQLs(t *testing.T) {
 			}),
 		},
 		{
+			"UPDATE users SET age=age+1",
+			tdb.Model(User{
+				Age: 18,
+			}).UpdateMapSQL(M{
+				"age": Expr("age+?", 1),
+			}),
+		},
+		{
 			"DELETE FROM users WHERE (id=1)",
 			tdb.From(User{}).Where("id=?", 1).DeleteSQL(),
 		},

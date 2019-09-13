@@ -7,9 +7,6 @@ type _SQLCommon interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
-// Expr is raw SQL string.
-type Expr string
-
 // M is a string-interface map that is used for Update*.
 type M map[string]interface{}
 

@@ -17,7 +17,7 @@ type _Where struct {
 	args  []interface{}
 }
 
-func (w *_Where) rebuild() (query string, args []interface{}) {
+func (w _Where) build() (query string, args []interface{}) {
 	sb := bytes.NewBuffer(nil)
 	sb.Grow(len(query)) // should we reserve capacity for slice too?
 	var i int
@@ -47,6 +47,21 @@ func (w *_Where) rebuild() (query string, args []interface{}) {
 		panic(fmt.Errorf("err where args count"))
 	}
 	return sb.String(), args
+}
+
+// _Expr is a raw SQL expression.
+//
+// e.g.: `UPDATE sth SET left = right`, here `right` is the expression.
+//
+// TODO expr args cannot be slice.
+type _Expr _Where
+
+// Expr creates an expression for Update* operations.
+func Expr(expr string, args ...interface{}) _Expr {
+	return _Expr{
+		query: expr,
+		args:  args,
+	}
 }
 
 type _RawQuery struct {
@@ -231,7 +246,7 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 		if i > 0 {
 			sb.WriteString(" AND ")
 		}
-		query, xargs := w.rebuild()
+		query, xargs := w.build()
 		fw("(%s)", query)
 		args = append(args, xargs...)
 	}
@@ -337,29 +352,30 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 func (s *Stmt) buildUpdateMap(fields map[string]interface{}) (string, []interface{}, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
 	panicIf(s.raw.query != "", "cannot use raw here")
-	var args []interface{}
 	query := fmt.Sprintf(`UPDATE %s SET `, strings.Join(s.tableNames, ","))
-
-	var updates []string
-	var values []interface{}
 
 	if len(fields) == 0 {
 		return "", nil, ErrNoFields
 	}
 
+	updates := make([]string, 0, len(fields))
+	args := make([]interface{}, 0, len(fields))
+
 	for field, value := range fields {
-		if expr, ok := value.(Expr); ok {
-			pair := fmt.Sprintf("%s=%s", field, string(expr))
+		switch tv := value.(type) {
+		case _Expr:
+			eq, ea := _Where(tv).build()
+			pair := fmt.Sprintf("%s=%s", field, eq)
 			updates = append(updates, pair)
-			continue
+			args = append(args, ea...)
+		default:
+			pair := fmt.Sprintf("%s=?", field)
+			updates = append(updates, pair)
+			args = append(args, value)
 		}
-		pair := fmt.Sprintf("%s=?", field)
-		updates = append(updates, pair)
-		values = append(values, value)
 	}
 
 	query += strings.Join(updates, ",")
-	args = append(args, values...)
 
 	whereQuery, whereArgs := s.buildWheres()
 	query += whereQuery
