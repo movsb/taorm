@@ -238,16 +238,13 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 
 	var args []interface{}
 	sb := bytes.NewBuffer(nil)
-	fw := func(format string, args ...interface{}) {
-		sb.WriteString(fmt.Sprintf(format, args...))
-	}
 	sb.WriteString(" WHERE ")
 	for i, w := range s.ands {
 		if i > 0 {
 			sb.WriteString(" AND ")
 		}
 		query, xargs := w.build()
-		fw("(%s)", query)
+		sb.WriteString("(" + query + ")")
 		args = append(args, xargs...)
 	}
 	return sb.String(), args
@@ -314,7 +311,8 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 					for _, field := range slice {
 						index := strings.IndexByte(field, '.')
 						if index == -1 {
-							fields = append(fields, fmt.Sprintf("%s.%s", s.tableNames[0], field))
+							f := s.tableNames[0] + "." + field
+							fields = append(fields, f)
 						} else {
 							fields = append(fields, field)
 						}
@@ -325,7 +323,7 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 		strFields = strings.Join(fields, ",")
 	}
 
-	query := fmt.Sprintf(`SELECT %s FROM %s`, strFields, strings.Join(s.tableNames, ","))
+	query := `SELECT ` + strFields + ` FROM ` + strings.Join(s.tableNames, ",")
 	if len(s.innerJoinTables) > 0 {
 		query += strings.Join(s.innerJoinTables, " ")
 	}
@@ -352,7 +350,7 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 func (s *Stmt) buildUpdateMap(fields map[string]interface{}) (string, []interface{}, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
 	panicIf(s.raw.query != "", "cannot use raw here")
-	query := fmt.Sprintf(`UPDATE %s SET `, strings.Join(s.tableNames, ","))
+	query := `UPDATE ` + strings.Join(s.tableNames, ",") + ` SET `
 
 	if len(fields) == 0 {
 		return "", nil, ErrNoFields
@@ -365,11 +363,11 @@ func (s *Stmt) buildUpdateMap(fields map[string]interface{}) (string, []interfac
 		switch tv := value.(type) {
 		case _Expr:
 			eq, ea := _Where(tv).build()
-			pair := fmt.Sprintf("%s=%s", field, eq)
+			pair := field + "=" + eq
 			updates = append(updates, pair)
 			args = append(args, ea...)
 		default:
-			pair := fmt.Sprintf("%s=?", field)
+			pair := field + "=?"
 			updates = append(updates, pair)
 			args = append(args, value)
 		}
@@ -401,7 +399,7 @@ func (s *Stmt) buildDelete() (string, []interface{}, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
 	panicIf(s.raw.query != "", "cannot use raw here")
 	var args []interface{}
-	query := fmt.Sprintf(`DELETE FROM %s`, strings.Join(s.tableNames, ","))
+	query := `DELETE FROM ` + strings.Join(s.tableNames, ",")
 
 	whereQuery, whereArgs := s.buildWheres()
 	query += whereQuery
@@ -414,7 +412,7 @@ func (s *Stmt) buildDelete() (string, []interface{}, error) {
 
 func (s *Stmt) buildGroupBy() (groupBy string) {
 	if s.groupBy != "" {
-		groupBy = fmt.Sprintf(` GROUP BY %s`, s.groupBy)
+		groupBy = ` GROUP BY ` + s.groupBy
 	}
 	return
 }
@@ -452,9 +450,9 @@ func (s *Stmt) buildOrderBy() (string, error) {
 
 func (s *Stmt) buildLimit() (limit string) {
 	if s.limit > 0 {
-		limit += fmt.Sprintf(" LIMIT %d", s.limit)
+		limit += ` LIMIT ` + fmt.Sprint(s.limit)
 		if s.offset >= 0 {
-			limit += fmt.Sprintf(" OFFSET %d", s.offset)
+			limit += ` OFFSET ` + fmt.Sprint(s.offset)
 		}
 	}
 	return
