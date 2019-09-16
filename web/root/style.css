@@ -1,0 +1,63 @@
+/* index.html */
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    transition: 0.2s;
+}
+
+.wrap {
+    max-width: 850px;
+    margin: auto;
+}
+
+.header {
+    background-color: #444;
+}
+
+header {
+    overflow: hidden;
+}
+
+header .item {
+    margin-right: 1em;
+}
+
+header h1, header nav {
+    display: inline-block;
+}
+
+header h1 {
+    color: #fff;
+    position: relative;
+    top: 3px;
+}
+
+header h1 a {
+    color: #fff;
+    text-decoration: none;
+    display: inline-block;
+}
+
+header nav a {
+    color: #fff;
+    text-decoration: none;
+    display: inline-block;
+    margin-right: 1em;
+}
+
+header nav a:hover {
+    color: palevioletred;
+}
+
+.body article {
+}
+
+.body aside {
+    display: block;
+}
+
+.body .wrap {
+}
