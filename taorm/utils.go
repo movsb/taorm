@@ -22,21 +22,24 @@ func toSnakeCase(str string) string {
 	return strings.ToLower(snake)
 }
 
+var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
+var valuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
+
 func isColumnField(field reflect.StructField) bool {
 	if !ast.IsExported(field.Name) {
 		return false
 	}
 	ty := field.Type.Kind()
 	switch ty {
-	case reflect.Slice, reflect.Chan, reflect.Map, reflect.Func:
+	case reflect.Chan, reflect.Func:
 		return false
-	case reflect.Struct, reflect.Ptr:
-		dummy := reflect.NewAt(field.Type, unsafe.Pointer(nil)).Interface()
-		_, scanable := dummy.(sql.Scanner)
-		_, valueable := dummy.(driver.Valuer)
+	case reflect.Struct, reflect.Ptr, reflect.Slice, reflect.Map:
+		scanable := reflect.PtrTo(field.Type).Implements(scannerType)
+		valueable := field.Type.Implements(valuerType)
 		if scanable && valueable {
 			return true
 		}
+		dummy := reflect.NewAt(field.Type, unsafe.Pointer(nil)).Interface()
 		switch dummy.(type) {
 		case time.Time, *time.Time:
 			return true
