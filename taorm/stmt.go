@@ -553,6 +553,10 @@ func (s *Stmt) CountSQL() string {
 }
 
 func (s *Stmt) updateMap(fields M, anyway bool) error {
+	if len(fields) == 0 {
+		return nil
+	}
+
 	query, args, err := s.buildUpdateMap(fields)
 	if err != nil {
 		if err == ErrNoFields {
@@ -619,6 +623,13 @@ func (s *Stmt) MustUpdateMap(updates M) {
 // MustUpdateMapAnyway ...
 func (s *Stmt) MustUpdateMapAnyway(updates M) {
 	if err := s.updateMap(updates, true); err != nil {
+		panic(err)
+	}
+}
+
+// MustUpdateModel ...
+func (s *Stmt) MustUpdateModel(model interface{}) {
+	if err := s.updateModel(model); err != nil {
 		panic(err)
 	}
 }
