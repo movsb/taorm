@@ -29,24 +29,32 @@ func isColumnField(field reflect.StructField) bool {
 	if !ast.IsExported(field.Name) {
 		return false
 	}
-	ty := field.Type.Kind()
-	switch ty {
-	case reflect.Chan, reflect.Func:
-		return false
-	case reflect.Struct, reflect.Ptr, reflect.Slice, reflect.Map:
-		scanable := reflect.PtrTo(field.Type).Implements(scannerType)
-		valueable := field.Type.Implements(valuerType)
-		if scanable && valueable {
-			return true
-		}
-		dummy := reflect.NewAt(field.Type, unsafe.Pointer(nil)).Interface()
-		switch dummy.(type) {
-		case time.Time, *time.Time:
-			return true
-		}
-		return false
+
+	t := field.Type
+
+	switch t.Kind() {
+	case reflect.Bool, reflect.String,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		return true
 	}
-	return true
+
+	valueable := t.Implements(valuerType)
+	scannable := reflect.PtrTo(t).Implements(scannerType) && !t.Implements(scannerType)
+	if valueable && scannable {
+		return true
+	}
+
+	dummy := reflect.NewAt(t, unsafe.Pointer(nil)).Interface()
+	switch dummy.(type) {
+	case *time.Time:
+		return true
+	case *[]byte:
+		return true
+	}
+
+	return false
 }
 
 func getColumnName(field reflect.StructField) string {
