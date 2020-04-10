@@ -427,22 +427,31 @@ func (s *Stmt) buildOrderBy() (string, error) {
 	parts := strings.Split(s.orderBy, ",")
 	orderBys := []string{}
 	for _, part := range parts {
-		matches := regexpOrderBy.FindStringSubmatch(part)
-		if len(matches) != 5 {
-			return "", errors.New("invalid orderby")
+		if !regexpOrderBy.MatchString(part) {
+			return ``, fmt.Errorf(`invalid order_by: %s`, part)
 		}
-		table := matches[2]
-		column := matches[1]
-		order := matches[4]
-		// avoid column ambiguous
-		// "Error 1052: Column 'created_at' in order clause is ambiguous"
-		if table == "" && len(s.tableNames)+len(s.innerJoinTables) > 1 {
-			column = s.tableNames[0] + "." + column
-		}
-		if order != "" {
-			column += " " + order
-		}
-		orderBys = append(orderBys, column)
+		orderBys = append(orderBys, part)
+
+		// these are for automatically adding table names to fields in order_by etc.
+		// they are commented out because of custom field name doesn't belong to some table.
+		// currently I don't know how to handle this correctly.
+		//
+		// matches := regexpOrderBy.FindStringSubmatch(part)
+		// if len(matches) != 5 {
+		// 	return "", errors.New("invalid orderby")
+		// }
+		// table := matches[2]
+		// column := matches[1]
+		// order := matches[4]
+		// // avoid column ambiguous
+		// // "Error 1052: Column 'created_at' in order clause is ambiguous"
+		// if table == "" && len(s.tableNames)+len(s.innerJoinTables) > 1 {
+		// 	column = s.tableNames[0] + "." + column
+		// }
+		// if order != "" {
+		// 	column += " " + order
+		// }
+		// orderBys = append(orderBys, column)
 	}
 	orderBy += strings.Join(orderBys, ",")
 	return orderBy, nil

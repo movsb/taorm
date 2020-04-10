@@ -15,10 +15,18 @@ type User struct {
 	Age  int
 }
 
+func (User) TableName() string {
+	return `users`
+}
+
 type Like struct {
 	ID     int64
 	UserID int64
 	LikeID int64
+}
+
+func (Like) TableName() string {
+	return `likes`
 }
 
 func TestSQLs(t *testing.T) {
@@ -27,8 +35,6 @@ func TestSQLs(t *testing.T) {
 		t.Fatal(err)
 	}
 	tdb := NewDB(db)
-	Register(User{}, "users")
-	Register(Like{}, "likes")
 	tests := []struct {
 		want string
 		got  string
@@ -99,7 +105,7 @@ func TestSQLs(t *testing.T) {
 			tdb.From(User{}).OrderBy("id").FindSQL(),
 		},
 		{
-			"SELECT users.* FROM users INNER JOIN likes ON users.id = likes.user_id ORDER BY users.id",
+			"SELECT users.* FROM users INNER JOIN likes ON users.id = likes.user_id ORDER BY id",
 			tdb.From(User{}).OrderBy("id").InnerJoin(Like{}, "users.id = likes.user_id").FindSQL(),
 		},
 		{

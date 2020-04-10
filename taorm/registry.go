@@ -90,18 +90,19 @@ func (s *_StructInfo) getPrimaryKey(out interface{}) (interface{}, bool) {
 var structs = make(map[string]*_StructInfo)
 var rwLock = &sync.RWMutex{}
 
-// Register ...
-func Register(_struct interface{}, tableName string) error {
-	_, err := register(reflect.TypeOf(_struct), tableName)
-	return WrapError(err)
-}
-
 // register ...
-func register(ty reflect.Type, tableName string) (*_StructInfo, error) {
+func register(ty reflect.Type) (*_StructInfo, error) {
 	rwLock.Lock()
 	defer rwLock.Unlock()
 
 	typeName := structName(ty)
+	tableName, err := getTableNameFromType(ty)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO check name validity
+	// TODO name can be empty because of auto-generated table info.
 
 	if si, ok := structs[typeName]; ok {
 		return si, nil
@@ -171,6 +172,29 @@ func structType(_struct interface{}) (reflect.Type, error) {
 	return ty, nil
 }
 
+var tableNamerType = reflect.TypeOf((*TableNamer)(nil)).Elem()
+
+// getTableName gets the table name for a specific type.
+// The type must implement TableNamer.
+func getTableNameFromType(ty reflect.Type) (string, error) {
+	if ty == nil {
+		return ``, &NotStructError{}
+	}
+
+	for ty.Kind() == reflect.Ptr || ty.Kind() == reflect.Slice {
+		ty = ty.Elem()
+	}
+
+	return getTableNameFromValue(reflect.New(ty).Interface())
+}
+
+func getTableNameFromValue(value interface{}) (string, error) {
+	if i, ok := value.(TableNamer); ok {
+		return i.TableName(), nil
+	}
+	return ``, nil
+}
+
 func getRegistered(_struct interface{}) (*_StructInfo, error) {
 	ty, err := structType(_struct)
 	if err != nil {
@@ -184,5 +208,5 @@ func getRegistered(_struct interface{}) (*_StructInfo, error) {
 		return si, nil
 	}
 	rwLock.RUnlock()
-	return register(ty, "")
+	return register(ty)
 }

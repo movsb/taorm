@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 	"unsafe"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type ColumnFieldStruct struct {
@@ -81,5 +83,61 @@ func TestIsColumnField(t *testing.T) {
 		if got != want {
 			t.Errorf("%-16s want=%-8s got=%-8s\n", f.Name, want, got)
 		}
+	}
+}
+
+func TestToSnakeCase(t *testing.T) {
+	tests := []struct {
+		a, b string
+	}{
+		{`a`, `a`},
+		{`A`, `a`},
+		{`AB`, `ab`},
+		{`Ab`, `ab`},
+		{`ABc`, `a_bc`},
+		{`AbcDef`, `abc_def`},
+		{`URL`, `url`},
+		{`URLString`, `url_string`},
+		{`HTTPAPI`, `httpapi`},
+		{`GRPCEndpoint`, `grpc_endpoint`},
+		{`SQLInMarks`, `sql_in_marks`},
+	}
+	for _, x := range tests {
+		assert.Equal(t, x.b, toSnakeCase(x.a))
+	}
+}
+
+func TestGetColumnName(t *testing.T) {
+	s := struct {
+		A int `taorm:"-"`
+		B int `taorm:"xxx"`
+		C int `taorm:"name:c"`
+		D int `taorm:"name"`
+	}{}
+	n := []string{
+		``,
+		`b`,
+		`c`,
+		``,
+	}
+	r := reflect.TypeOf(s)
+	for i := 0; i < r.NumField(); i++ {
+		assert.Equal(t, n[i], getColumnName(r.Field(i)))
+	}
+}
+
+func TestCreateSQLInMarks(t *testing.T) {
+	ss := []struct {
+		n int
+		m string
+	}{
+		{0, `?`},
+		{1, `?`},
+		{2, `?,?`},
+		{3, `?,?,?`},
+		{10, `?,?,?,?,?,?,?,?,?,?`},
+	}
+	for _, s := range ss {
+		assert.Equal(t, s.m, createSQLInMarks(s.n))
 	}
 }

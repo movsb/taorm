@@ -1,6 +1,8 @@
 package taorm
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 type _SQLCommon interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
@@ -18,4 +20,9 @@ type Finder interface {
 	Count(out interface{}) error
 	MustCount(out interface{})
 	CountSQL() string
+}
+
+// TableNamer ...
+type TableNamer interface {
+	TableName() string
 }

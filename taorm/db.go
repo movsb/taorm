@@ -105,17 +105,12 @@ func (db *DB) From(table interface{}) *Stmt {
 		limit:  -1,
 		offset: -1,
 	}
-	switch typed := table.(type) {
-	case string:
-		s.tableNames = append(s.tableNames, typed)
-	default:
-		name, err := s.tryFindTableName(table)
-		if err != nil {
-			panic(WrapError(err))
-		}
-		s.tableNames = append(s.tableNames, name)
-		s.fromTable = table
+	name, err := s.tryFindTableName(table)
+	if err != nil {
+		panic(WrapError(err))
 	}
+	s.tableNames = append(s.tableNames, name)
+	s.fromTable = table
 	return s
 }
 
