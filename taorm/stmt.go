@@ -81,6 +81,7 @@ type Stmt struct {
 	fields          []string
 	ands            []_Where
 	groupBy         string
+	having          string
 	orderBy         string
 	limit           int64
 	offset          int64
@@ -153,6 +154,12 @@ func (s *Stmt) WhereIf(cond bool, query string, args ...interface{}) *Stmt {
 // GroupBy ...
 func (s *Stmt) GroupBy(groupBy string) *Stmt {
 	s.groupBy = groupBy
+	return s
+}
+
+// Having ...
+func (s *Stmt) Having(having string) *Stmt {
+	s.having = having
 	return s
 }
 
@@ -335,6 +342,8 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 	args = append(args, whereArgs...)
 
 	query += s.buildGroupBy()
+	query += s.buildHaving()
+
 	if orderBy, err := s.buildOrderBy(); err != nil {
 		return "", nil, err
 	} else {
@@ -413,6 +422,13 @@ func (s *Stmt) buildDelete() (string, []interface{}, error) {
 func (s *Stmt) buildGroupBy() (groupBy string) {
 	if s.groupBy != "" {
 		groupBy = ` GROUP BY ` + s.groupBy
+	}
+	return
+}
+
+func (s *Stmt) buildHaving() (having string) {
+	if s.having != `` {
+		having = ` HAVING ` + s.having
 	}
 	return
 }
