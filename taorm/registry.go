@@ -111,28 +111,9 @@ func register(ty reflect.Type) (*_StructInfo, error) {
 	structInfo := newStructInfo()
 	structInfo.tableName = tableName
 	fieldNames := []string{}
-	for i := 0; i < ty.NumField(); i++ {
-		f := ty.Field(i)
-		if isColumnField(f) {
-			columnName := getColumnName(f)
-			if columnName == "" {
-				continue
-			}
-			if columnName != "id" {
-				fieldNames = append(fieldNames, columnName)
-			}
-			fieldInfo := _FieldInfo{
-				offset: f.Offset,
-				_type:  f.Type,
-			}
-			structInfo.fields[columnName] = fieldInfo
-			if columnName != "id" {
-				structInfo.insertFields = append(structInfo.insertFields, fieldInfo)
-			} else {
-				structInfo.pkeyField = fieldInfo
-			}
-		}
-	}
+
+	addStructFields(structInfo, ty, &fieldNames)
+
 	structInfo.fieldstr = strings.Join(fieldNames, ",")
 	{
 		query := fmt.Sprintf(`INSERT INTO %s `, tableName)
@@ -154,6 +135,33 @@ func register(ty reflect.Type) (*_StructInfo, error) {
 	structs[typeName] = structInfo
 	//fmt.Printf("taorm: registered: %s\n", typeName)
 	return structInfo, nil
+}
+
+func addStructFields(info *_StructInfo, ty reflect.Type, fieldNames *[]string) {
+	for i := 0; i < ty.NumField(); i++ {
+		f := ty.Field(i)
+		if isColumnField(f) {
+			columnName := getColumnName(f)
+			if columnName == "" {
+				continue
+			}
+			if columnName != "id" {
+				*fieldNames = append(*fieldNames, columnName)
+			}
+			fieldInfo := _FieldInfo{
+				offset: f.Offset,
+				_type:  f.Type,
+			}
+			info.fields[columnName] = fieldInfo
+			if columnName != "id" {
+				info.insertFields = append(info.insertFields, fieldInfo)
+			} else {
+				info.pkeyField = fieldInfo
+			}
+		} else if f.Anonymous {
+			addStructFields(info, f.Type, fieldNames)
+		}
+	}
 }
 
 // _struct can be any struct-related types.

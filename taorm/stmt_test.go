@@ -144,9 +144,9 @@ func BenchmarkInsert(b *testing.B) {
 
 func BenchmarkSelectAll(b *testing.B) {
 	mimic.SetRows([]string{"id", "name", "age"}, [][]driver.Value{
-		[]driver.Value{int64(1), "tao", 100},
-		[]driver.Value{int64(2), "qiao", 101},
-		[]driver.Value{int64(3), "daniel", 102},
+		{int64(1), "tao", 100},
+		{int64(2), "qiao", 101},
+		{int64(3), "daniel", 102},
 	})
 
 	db, err := sql.Open("mimic", "")
@@ -168,9 +168,9 @@ func BenchmarkSelectAll(b *testing.B) {
 
 func BenchmarkSelectComplex(b *testing.B) {
 	mimic.SetRows([]string{"id", "name", "age"}, [][]driver.Value{
-		[]driver.Value{int64(1), "tao", 100},
-		[]driver.Value{int64(2), "qiao", 101},
-		[]driver.Value{int64(3), "daniel", 102},
+		{int64(1), "tao", 100},
+		{int64(2), "qiao", 101},
+		{int64(3), "daniel", 102},
 	})
 
 	db, err := sql.Open("mimic", "")
