@@ -2,6 +2,7 @@ package taorm
 
 import (
 	"bytes"
+	"database/sql"
 	"errors"
 	"fmt"
 	"reflect"
@@ -577,86 +578,89 @@ func (s *Stmt) CountSQL() string {
 	return strSQL(query, args...)
 }
 
-func (s *Stmt) updateMap(fields M, anyway bool) error {
+func (s *Stmt) updateMap(fields M, anyway bool) (sql.Result, error) {
 	if len(fields) == 0 {
-		return nil
+		return nil, ErrNoFields
 	}
 
 	query, args, err := s.buildUpdateMap(fields)
 	if err != nil {
-		if err == ErrNoFields {
-			return nil
-		}
-		return err
+		return nil, err
 	}
 
 	if !anyway && s.noWheres() {
-		return ErrNoWhere
+		return nil, ErrNoWhere
 	}
 
 	dumpSQL(query, args...)
 
-	_, err = s.db.Exec(query, args...)
+	res, err := s.db.Exec(query, args...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return res, nil
 }
 
-func (s *Stmt) updateModel(model interface{}) error {
+func (s *Stmt) updateModel(model interface{}) (sql.Result, error) {
 	query, args, err := s.buildUpdateModel(model)
 	if err != nil {
-		if err == ErrNoFields {
-			return nil
-		}
-		return err
+		return nil, err
 	}
 
 	dumpSQL(query, args...)
 
-	_, err = s.db.Exec(query, args...)
+	res, err := s.db.Exec(query, args...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return res, nil
 }
 
 // UpdateMap ...
-func (s *Stmt) UpdateMap(updates M) error {
-	return WrapError(s.updateMap(updates, false))
+func (s *Stmt) UpdateMap(updates M) (sql.Result, error) {
+	res, err := s.updateMap(updates, false)
+	return res, WrapError(err)
 }
 
 // UpdateMapAnyway ...
-func (s *Stmt) UpdateMapAnyway(updates M) error {
-	return WrapError(s.updateMap(updates, true))
+func (s *Stmt) UpdateMapAnyway(updates M) (sql.Result, error) {
+	res, err := s.updateMap(updates, true)
+	return res, WrapError(err)
 }
 
 // UpdateModel ...
-func (s *Stmt) UpdateModel(model interface{}) error {
-	return WrapError(s.updateModel(model))
+func (s *Stmt) UpdateModel(model interface{}) (sql.Result, error) {
+	res, err := s.updateModel(model)
+	return res, WrapError(err)
 }
 
 // MustUpdateMap ...
-func (s *Stmt) MustUpdateMap(updates M) {
-	if err := s.updateMap(updates, false); err != nil {
+func (s *Stmt) MustUpdateMap(updates M) sql.Result {
+	res, err := s.updateMap(updates, false)
+	if err != nil {
 		panic(err)
 	}
+	return res
 }
 
 // MustUpdateMapAnyway ...
-func (s *Stmt) MustUpdateMapAnyway(updates M) {
-	if err := s.updateMap(updates, true); err != nil {
+func (s *Stmt) MustUpdateMapAnyway(updates M) sql.Result {
+	res, err := s.updateMap(updates, true)
+	if err != nil {
 		panic(err)
 	}
+	return res
 }
 
 // MustUpdateModel ...
-func (s *Stmt) MustUpdateModel(model interface{}) {
-	if err := s.updateModel(model); err != nil {
+func (s *Stmt) MustUpdateModel(model interface{}) sql.Result {
+	res, err := s.updateModel(model)
+	if err != nil {
 		panic(err)
 	}
+	return res
 }
 
 // UpdateMapSQL ...
