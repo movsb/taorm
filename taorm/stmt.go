@@ -3,13 +3,10 @@ package taorm
 import (
 	"bytes"
 	"database/sql"
-	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
-
-	"github.com/movsb/taorm/filter"
 )
 
 // _Where ...
@@ -180,51 +177,6 @@ func (s *Stmt) Limit(limit int64) *Stmt {
 // Offset ...
 func (s *Stmt) Offset(offset int64) *Stmt {
 	s.offset = offset
-	return s
-}
-
-// Filter ... may throw exceptions
-// Filter has to know whom to filter. So before filtering, call From(), Model()
-// or pass the third argument.
-func (s *Stmt) Filter(expr string, mapper filter.Mapper, _Struct ...interface{}) *Stmt {
-	var info *_StructInfo
-
-	if s.info != nil {
-		info = s.info
-	} else if s.model != nil {
-		inf, err := getRegistered(s.model)
-		if err != nil {
-			panic(WrapError(err))
-		}
-		info = inf
-	} else if s.fromTable != nil {
-		inf, err := getRegistered(s.fromTable)
-		if err != nil {
-			panic(WrapError(err))
-		}
-		info = inf
-	} else if len(_Struct) > 0 { // Warn: == 1
-		inf, err := getRegistered(_Struct[0])
-		if err != nil {
-			panic(WrapError(err))
-		}
-		info = inf
-	} else {
-		panic(WrapError(errors.New("cannot deduce what to filter")))
-	}
-
-	query, args, err := filter.Filter(
-		func(field string) reflect.Type {
-			return info.fields[field]._type // maybe not exist
-		},
-		expr,
-		mapper,
-		info.tableName,
-	)
-	if err != nil {
-		panic(WrapError(err))
-	}
-	s.WhereIf(query != "", query, args...)
 	return s
 }
 
