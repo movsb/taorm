@@ -31,18 +31,18 @@ func newStructInfo() *_StructInfo {
 	}
 }
 
-func (s *_StructInfo) baseOf(out interface{}) uintptr {
-	return uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)
-}
-
 func (s *_StructInfo) valueOf(out interface{}, field _FieldInfo) reflect.Value {
-	addr := unsafe.Pointer(s.baseOf(out) + field.offset)
-	return reflect.NewAt(field._type, addr).Elem()
+	return reflect.NewAt(
+		field._type,
+		unsafe.Pointer(uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)+field.offset),
+	).Elem()
 }
 
 func (s *_StructInfo) addrOf(out interface{}, field _FieldInfo) interface{} {
-	addr := unsafe.Pointer(s.baseOf(out) + field.offset)
-	return reflect.NewAt(field._type, addr).Interface()
+	return reflect.NewAt(
+		field._type,
+		unsafe.Pointer(uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)+field.offset),
+	).Interface()
 }
 
 func (s *_StructInfo) ptrsOf(out interface{}, fields []string) ([]interface{}, error) {
@@ -60,10 +60,11 @@ func (s *_StructInfo) ptrsOf(out interface{}, fields []string) ([]interface{}, e
 
 func (s *_StructInfo) ifacesOf(out interface{}) []interface{} {
 	values := make([]interface{}, len(s.insertFields))
-	base := s.baseOf(out)
 	for i, f := range s.insertFields {
-		addr := unsafe.Pointer(base + f.offset)
-		values[i] = reflect.NewAt(f._type, addr).Elem().Interface()
+		values[i] = reflect.NewAt(
+			f._type,
+			unsafe.Pointer(uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)+f.offset),
+		).Elem().Interface()
 	}
 	return values
 }
