@@ -10,7 +10,7 @@ type DB struct {
 	_SQLCommon
 }
 
-// NewDB news a DB.
+// NewDB news a taorm DB from raw sql.DB.
 func NewDB(db *sql.DB) *DB {
 	t := &DB{
 		rdb:        db,
@@ -20,7 +20,9 @@ func NewDB(db *sql.DB) *DB {
 }
 
 // TxCall calls callback within transaction.
-// It automatically catches and rethrows exceptions.
+//
+// If the callback returns an error, the transaction is rolled back.
+// if the callback panics, the transaction is rolled back and what's recovered is paniced again.
 func (db *DB) TxCall(callback func(tx *DB) error) error {
 	rtx, err := db.rdb.Begin()
 	if err != nil {
@@ -49,6 +51,7 @@ func (db *DB) TxCall(callback func(tx *DB) error) error {
 	}
 
 	if err := catchCall(); err != nil {
+		// TODO: how to handle rollback errors?
 		rtx.Rollback()
 		return err // user error, not wrapped
 	}

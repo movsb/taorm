@@ -28,7 +28,15 @@ func (w _Where) build() (query string, args []interface{}) {
 			value := reflect.ValueOf(w.args[i])
 			if value.Kind() == reflect.Slice {
 				n := value.Len()
-				sb.WriteString(createSQLInMarks(n))
+				marks := createSQLInMarks(n)
+				sliceValueKind := value.Type().Elem().Kind()
+				switch sliceValueKind {
+				case reflect.String:
+					marks = "(" + marks + ")"
+				default:
+					break
+				}
+				sb.WriteString(marks)
 				for j := 0; j < n; j++ {
 					args = append(args, value.Index(j).Interface())
 				}
@@ -75,7 +83,7 @@ type Stmt struct {
 	fromTable       interface{}
 	info            *_StructInfo
 	tableNames      []string
-	innerJoinTables []string
+	innerJoinTables map[string][]_Where
 	fields          []string
 	ands            []_Where
 	groupBy         string
@@ -101,8 +109,13 @@ func (s *Stmt) From(table interface{}) *Stmt {
 	return s
 }
 
+type _Join struct {
+	table  string
+	wheres []_Where
+}
+
 // InnerJoin ...
-func (s *Stmt) InnerJoin(table interface{}, on string) *Stmt {
+func (s *Stmt) InnerJoin(table interface{}, on string, args ...any) *Stmt {
 	name := ""
 	switch typed := table.(type) {
 	case string:
@@ -115,11 +128,10 @@ func (s *Stmt) InnerJoin(table interface{}, on string) *Stmt {
 		name = n
 	}
 
-	q := " INNER JOIN " + name
-	if on != "" {
-		q += " ON " + on
+	if s.innerJoinTables == nil {
+		s.innerJoinTables = make(map[string][]_Where)
 	}
-	s.innerJoinTables = append(s.innerJoinTables, q)
+	s.innerJoinTables[name] = append(s.innerJoinTables[name], _Where{query: on, args: args})
 	return s
 }
 
@@ -210,6 +222,28 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 	return sb.String(), args
 }
 
+func (s *Stmt) buildJoins() (string, []any) {
+	if len(s.innerJoinTables) <= 0 {
+		return "", nil
+	}
+	var args []any
+	sb := bytes.NewBuffer(nil)
+	for t, ws := range s.innerJoinTables {
+		sb.WriteString(" INNER JOIN ")
+		sb.WriteString(t)
+		sb.WriteString(" ON ")
+		for i, w := range ws {
+			if i > 0 {
+				sb.WriteString(" AND ")
+			}
+			query, xargs := w.build()
+			sb.WriteString("(" + query + ")")
+			args = append(args, xargs...)
+		}
+	}
+	return sb.String(), args
+}
+
 func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
 	panicIf(len(s.tableNames) != 1, "model length is not 1")
 	panicIf(s.raw.query != "", "cannot use raw here")
@@ -283,12 +317,14 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 		strFields = strings.Join(fields, ",")
 	}
 
+	var args []interface{}
+
 	query := `SELECT ` + strFields + ` FROM ` + strings.Join(s.tableNames, ",")
 	if len(s.innerJoinTables) > 0 {
-		query += strings.Join(s.innerJoinTables, " ")
+		q, a := s.buildJoins()
+		query += q
+		args = append(args, a...)
 	}
-
-	var args []interface{}
 
 	whereQuery, whereArgs := s.buildWheres()
 	query += whereQuery

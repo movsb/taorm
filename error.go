@@ -60,10 +60,7 @@ func WrapError(err error) error {
 
 	// taorm error constants
 	switch err {
-	case ErrInternal:
-	case ErrNoWhere:
-	case ErrNoFields:
-	case ErrInvalidOut:
+	case ErrInternal, ErrNoWhere, ErrNoFields, ErrInvalidOut:
 		return &Error{Err: ErrInternal, Raw: err}
 	}
 
