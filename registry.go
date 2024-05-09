@@ -20,6 +20,7 @@ type _StructInfo struct {
 	fields       map[string]_FieldInfo // struct member info
 	fieldstr     string                // fields for inserting
 	insertstr    string                // for insert
+	insertIdStr  string                // for insert with id
 	updatestr    string                // for update
 	insertFields []_FieldInfo          // offsets of member to insert
 	pkeyField    _FieldInfo
@@ -58,6 +59,7 @@ func (s *_StructInfo) ptrsOf(out interface{}, fields []string) ([]interface{}, e
 	return ptrs, nil
 }
 
+// TODO works also with pk
 func (s *_StructInfo) ifacesOf(out interface{}) []interface{} {
 	values := make([]interface{}, len(s.insertFields))
 	for i, f := range s.insertFields {
@@ -123,6 +125,14 @@ func register(ty reflect.Type) (*_StructInfo, error) {
 			createSQLInMarks(len(fieldNames)),
 		)
 		structInfo.insertstr = query
+	}
+	{
+		query := fmt.Sprintf(`INSERT INTO %s `, tableName)
+		query += fmt.Sprintf(`(id,%s) VALUES (%s)`,
+			structInfo.fieldstr,
+			createSQLInMarks(1+len(fieldNames)),
+		)
+		structInfo.insertIdStr = query
 	}
 	{
 		query := fmt.Sprintf(`UPDATE %s SET `, tableName)

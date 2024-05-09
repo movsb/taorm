@@ -255,7 +255,14 @@ func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
 	if len(args) == 0 {
 		return info, "", nil, ErrNoFields
 	}
-	return info, info.insertstr, args, nil
+	var query string
+	if pk, ok := info.getPrimaryKey(s.model); ok {
+		args = append([]any{pk}, args...)
+		query = info.insertIdStr
+	} else {
+		query = info.insertstr
+	}
+	return info, query, args, nil
 }
 
 func (s *Stmt) tryFindTableName(out interface{}) (string, error) {
