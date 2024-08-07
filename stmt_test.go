@@ -48,7 +48,7 @@ func TestSQLs(t *testing.T) {
 			tdb.From(User{ID: 28}).FindSQL(),
 		},
 		{
-			"INSERT INTO users (name,age) VALUES (tao,18)",
+			"INSERT INTO users (name,age) VALUES ('tao',18)",
 			tdb.Model(User{
 				Name: "tao",
 				Age:  18,
@@ -65,7 +65,7 @@ func TestSQLs(t *testing.T) {
 			}),
 		},
 		{
-			"UPDATE users SET name=TAO,age=28 WHERE (id=1)",
+			"UPDATE users SET name='TAO',age=28 WHERE (id=1)",
 			tdb.Model(User{
 				ID:   1,
 				Name: "tao",
@@ -111,6 +111,10 @@ func TestSQLs(t *testing.T) {
 		{
 			"SELECT users.* FROM users INNER JOIN likes ON (users.id = likes.user_id) ORDER BY users.id",
 			tdb.From(User{}).OrderBy("users.id").InnerJoin(Like{}, "users.id = likes.user_id").FindSQL(),
+		},
+		{
+			`SELECT * FROM users WHERE (name IN ('tao','yang'))`,
+			tdb.From(User{}).Where(`name IN (?)`, []string{`tao`, `yang`}).FindSQL(),
 		},
 	}
 	for _, test := range tests {

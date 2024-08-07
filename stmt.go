@@ -29,13 +29,13 @@ func (w _Where) build() (query string, args []interface{}) {
 			if value.Kind() == reflect.Slice {
 				n := value.Len()
 				marks := createSQLInMarks(n)
-				sliceValueKind := value.Type().Elem().Kind()
-				switch sliceValueKind {
-				case reflect.String:
-					marks = "(" + marks + ")"
-				default:
-					break
-				}
+				// sliceValueKind := value.Type().Elem().Kind()
+				// switch sliceValueKind {
+				// case reflect.String:
+				// 	marks = "(" + marks + ")"
+				// default:
+				// 	break
+				// }
 				sb.WriteString(marks)
 				for j := 0; j < n; j++ {
 					args = append(args, value.Index(j).Interface())

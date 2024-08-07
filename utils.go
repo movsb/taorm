@@ -99,8 +99,28 @@ func dumpSQL(query string, args ...interface{}) {
 	// fmt.Println(strSQL(query, args...))
 }
 
+type _StrArg struct {
+	a any
+}
+
+func (v _StrArg) String() string {
+	switch typed := v.a.(type) {
+	case string:
+		return fmt.Sprintf(`'%s'`, strings.ReplaceAll(typed, `'`, `\'`))
+	default:
+		return fmt.Sprint(typed)
+	}
+}
+
 func strSQL(query string, args ...interface{}) string {
-	return fmt.Sprintf(strings.Replace(query, "?", "%v", -1), args...)
+	sa := make([]_StrArg, 0, len(args))
+	for _, a := range args {
+		sa = append(sa, _StrArg{a: a})
+	}
+	for i := range args {
+		args[i] = sa[i]
+	}
+	return fmt.Sprintf(strings.ReplaceAll(query, "?", "%v"), args...)
 }
 
 func structName(ty reflect.Type) string {
