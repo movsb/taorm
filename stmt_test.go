@@ -113,6 +113,14 @@ func TestSQLs(t *testing.T) {
 			tdb.From(User{}).OrderBy("users.id").InnerJoin(Like{}, "users.id = likes.user_id").FindSQL(),
 		},
 		{
+			`SELECT * FROM users WHERE (name IN (?))`,
+			tdb.From(User{}).Where(`name IN (?)`, []string{`tao`}).FindSQLRaw(),
+		},
+		{
+			`SELECT * FROM users WHERE (name IN (?,?))`,
+			tdb.From(User{}).Where(`name IN (?)`, []string{`tao`, `yang`}).FindSQLRaw(),
+		},
+		{
 			`SELECT * FROM users WHERE (name IN ('tao','yang'))`,
 			tdb.From(User{}).Where(`name IN (?)`, []string{`tao`, `yang`}).FindSQL(),
 		},

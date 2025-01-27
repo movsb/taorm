@@ -537,13 +537,21 @@ func (s *Stmt) MustFind(out interface{}) {
 	}
 }
 
-// FindSQL ...
 func (s *Stmt) FindSQL() string {
 	query, args, err := s.buildSelect(s.model, false)
 	if err != nil {
 		panic(WrapError(err))
 	}
 	return strSQL(query, args...)
+}
+
+// FindSQL ...
+func (s *Stmt) FindSQLRaw() string {
+	query, _, err := s.buildSelect(s.model, false)
+	if err != nil {
+		panic(WrapError(err))
+	}
+	return query
 }
 
 // Count ...
