@@ -77,20 +77,20 @@ type _RawQuery struct {
 
 // Stmt is an SQL statement.
 type Stmt struct {
-	db              *DB
-	raw             _RawQuery // not set if query == ""
-	model           interface{}
-	fromTable       interface{}
-	info            *_StructInfo
-	tableNames      []string
-	innerJoinTables map[string][]_Where
-	fields          []string
-	ands            []_Where
-	groupBy         string
-	having          string
-	orderBy         string
-	limit           int64
-	offset          int64
+	db         *DB
+	raw        _RawQuery // not set if query == ""
+	model      interface{}
+	fromTable  interface{}
+	info       *_StructInfo
+	tableNames []string
+	joinTables []_Join
+	fields     []string
+	ands       []_Where
+	groupBy    string
+	having     string
+	orderBy    string
+	limit      int64
+	offset     int64
 }
 
 // From ...
@@ -110,12 +110,24 @@ func (s *Stmt) From(table interface{}) *Stmt {
 }
 
 type _Join struct {
-	table  string
-	wheres []_Where
+	by    string
+	table string
+	where _Where
 }
 
-// InnerJoin ...
-func (s *Stmt) InnerJoin(table interface{}, on string, args ...any) *Stmt {
+func (s *Stmt) InnerJoin(table any, on string, args ...any) *Stmt {
+	return s.join(`INNER JOIN`, table, on, args...)
+}
+
+func (s *Stmt) LeftJoin(table any, on string, args ...any) *Stmt {
+	return s.join(`LEFT JOIN`, table, on, args...)
+}
+
+func (s *Stmt) RightJoin(table any, on string, args ...any) *Stmt {
+	return s.join(`RIGHT JOIN`, table, on, args...)
+}
+
+func (s *Stmt) join(by string, table any, on string, args ...any) *Stmt {
 	name := ""
 	switch typed := table.(type) {
 	case string:
@@ -128,10 +140,15 @@ func (s *Stmt) InnerJoin(table interface{}, on string, args ...any) *Stmt {
 		name = n
 	}
 
-	if s.innerJoinTables == nil {
-		s.innerJoinTables = make(map[string][]_Where)
-	}
-	s.innerJoinTables[name] = append(s.innerJoinTables[name], _Where{query: on, args: args})
+	s.joinTables = append(s.joinTables, _Join{
+		by:    by,
+		table: name,
+		where: _Where{
+			query: on,
+			args:  args,
+		},
+	})
+
 	return s
 }
 
@@ -223,23 +240,19 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 }
 
 func (s *Stmt) buildJoins() (string, []any) {
-	if len(s.innerJoinTables) <= 0 {
+	if len(s.joinTables) <= 0 {
 		return "", nil
 	}
+
 	var args []any
 	sb := bytes.NewBuffer(nil)
-	for t, ws := range s.innerJoinTables {
-		sb.WriteString(" INNER JOIN ")
-		sb.WriteString(t)
+	for _, j := range s.joinTables {
+		fmt.Fprintf(sb, ` %s `, j.by)
+		sb.WriteString(j.table)
 		sb.WriteString(" ON ")
-		for i, w := range ws {
-			if i > 0 {
-				sb.WriteString(" AND ")
-			}
-			query, xargs := w.build()
-			sb.WriteString("(" + query + ")")
-			args = append(args, xargs...)
-		}
+		query, xargs := j.where.build()
+		sb.WriteString(query)
+		args = append(args, xargs...)
 	}
 	return sb.String(), args
 }
@@ -298,13 +311,13 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 	} else {
 		fields := []string{}
 		if len(s.fields) == 0 {
-			if len(s.innerJoinTables) == 0 {
+			if len(s.joinTables) == 0 {
 				fields = []string{"*"}
 			} else {
 				fields = []string{s.tableNames[0] + ".*"}
 			}
 		} else {
-			if len(s.innerJoinTables) == 0 || len(s.fields) == 1 && s.fields[0] == "*" {
+			if len(s.joinTables) == 0 || len(s.fields) == 1 && s.fields[0] == "*" {
 				fields = s.fields
 			} else {
 				for _, list := range s.fields {
@@ -327,7 +340,7 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 	var args []interface{}
 
 	query := `SELECT ` + strFields + ` FROM ` + strings.Join(s.tableNames, ",")
-	if len(s.innerJoinTables) > 0 {
+	if len(s.joinTables) > 0 {
 		q, a := s.buildJoins()
 		query += q
 		args = append(args, a...)

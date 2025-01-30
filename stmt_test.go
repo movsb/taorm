@@ -105,11 +105,11 @@ func TestSQLs(t *testing.T) {
 			tdb.From(User{}).OrderBy("id").FindSQL(),
 		},
 		{
-			"SELECT users.* FROM users INNER JOIN likes ON (users.id = likes.user_id) ORDER BY id",
+			"SELECT users.* FROM users INNER JOIN likes ON users.id = likes.user_id ORDER BY id",
 			tdb.From(User{}).OrderBy("id").InnerJoin(Like{}, "users.id = likes.user_id").FindSQL(),
 		},
 		{
-			"SELECT users.* FROM users INNER JOIN likes ON (users.id = likes.user_id) ORDER BY users.id",
+			"SELECT users.* FROM users INNER JOIN likes ON users.id = likes.user_id ORDER BY users.id",
 			tdb.From(User{}).OrderBy("users.id").InnerJoin(Like{}, "users.id = likes.user_id").FindSQL(),
 		},
 		{
