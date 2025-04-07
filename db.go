@@ -8,6 +8,7 @@ import (
 type DB struct {
 	rdb *sql.DB // raw db
 	_SQLCommon
+	isTx bool
 }
 
 // NewDB news a taorm DB from raw sql.DB.
@@ -15,8 +16,15 @@ func NewDB(db *sql.DB) *DB {
 	t := &DB{
 		rdb:        db,
 		_SQLCommon: db,
+		isTx:       false,
 	}
 	return t
+}
+
+// If the db is currently in a Tx, true will be returned.
+// This is allowing for doing things in a single transaction before opening a new Tx.
+func (db *DB) IsTx() bool {
+	return db.isTx
 }
 
 // TxCall calls callback within transaction.
@@ -32,6 +40,7 @@ func (db *DB) TxCall(callback func(tx *DB) error) error {
 	tx := &DB{
 		rdb:        db.rdb,
 		_SQLCommon: rtx,
+		isTx:       true,
 	}
 
 	var exception struct {
