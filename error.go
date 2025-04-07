@@ -5,13 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"regexp"
-
-	"github.com/go-sql-driver/mysql"
-)
-
-var (
-	reErr1062 = regexp.MustCompile(`Duplicate entry '([^']*)' for key '([^']+)'`)
 )
 
 // Error all errors wrapper.
@@ -35,21 +28,6 @@ func WrapError(err error) error {
 	// don't wrap again
 	if _, ok := err.(*Error); ok {
 		return err
-	}
-
-	// mysql errors
-	if myErr, ok := err.(*mysql.MySQLError); ok {
-		switch myErr.Number {
-		case 1062:
-			matches := reErr1062.FindStringSubmatch(myErr.Message)
-			return &Error{
-				Err: &DupKeyError{
-					Key:   matches[2],
-					Value: matches[1],
-				},
-				Raw: myErr,
-			}
-		}
 	}
 
 	// official error constants
