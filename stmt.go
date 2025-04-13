@@ -27,18 +27,19 @@ func (w _Where) build() (query string, args []interface{}) {
 			}
 			value := reflect.ValueOf(w.args[i])
 			if value.Kind() == reflect.Slice {
-				n := value.Len()
-				marks := createSQLInMarks(n)
-				// sliceValueKind := value.Type().Elem().Kind()
-				// switch sliceValueKind {
-				// case reflect.String:
-				// 	marks = "(" + marks + ")"
-				// default:
-				// 	break
-				// }
-				sb.WriteString(marks)
-				for j := 0; j < n; j++ {
-					args = append(args, value.Index(j).Interface())
+				sliceValueKind := value.Type().Elem().Kind()
+				switch sliceValueKind {
+				case reflect.Uint8:
+					// 对 []byte 特殊处理。
+					sb.WriteByte('?')
+					args = append(args, w.args[i])
+				default:
+					n := value.Len()
+					marks := createSQLInMarks(n)
+					sb.WriteString(marks)
+					for j := 0; j < n; j++ {
+						args = append(args, value.Index(j).Interface())
+					}
 				}
 			} else {
 				sb.WriteByte('?')
