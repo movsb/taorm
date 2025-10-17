@@ -21,6 +21,11 @@ func NewDB(db *sql.DB) *DB {
 	return t
 }
 
+// Returns the underlying *sql.DB.
+func (db *DB) Underlying() *sql.DB {
+	return db.rdb
+}
+
 // If the db is currently in a Tx, true will be returned.
 // This is allowing for doing things in a single transaction before opening a new Tx.
 func (db *DB) IsTx() bool {
@@ -88,7 +93,8 @@ func (db *DB) MustTxCall(callback func(tx *DB)) {
 	}
 }
 
-// Model ...
+// TODO: 这里如果传 **struct，会有隐匿错误。
+// TODO: 这里只能为 *struct
 func (db *DB) Model(model interface{}) *Stmt {
 	stmt := &Stmt{
 		db:         db,
