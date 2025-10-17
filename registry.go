@@ -74,9 +74,9 @@ func (s *_StructInfo) ifacesOf(out interface{}) []interface{} {
 func (s *_StructInfo) setPrimaryKey(out interface{}, id int64) {
 	pkey := s.valueOf(out, s.pkeyField)
 	switch s.pkeyField._type.Kind() {
-	case reflect.Uint, reflect.Uint64:
+	case reflect.Uint, reflect.Uint32, reflect.Uint64:
 		pkey.SetUint(uint64(id))
-	case reflect.Int, reflect.Int64:
+	case reflect.Int, reflect.Int32, reflect.Int64:
 		pkey.SetInt(id)
 	default:
 		panic("cannot set primary key")

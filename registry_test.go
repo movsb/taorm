@@ -48,8 +48,13 @@ type Base struct {
 	ID int64 `taorm:"id"`
 }
 
+type lowerBase struct {
+	Lower int64 `taorm:"lower"`
+}
+
 type Embedded struct {
 	Base
+	lowerBase
 	Name string `taorm:"name:name"`
 }
 
@@ -59,7 +64,7 @@ func TestEmbedded(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	names := []string{`id`, `name`}
+	names := []string{`id`, `name`, `lower`}
 	for _, name := range names {
 		if _, ok := info.fields[name]; !ok {
 			t.Fatalf(`name not in fields: %s`, name)

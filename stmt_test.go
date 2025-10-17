@@ -3,9 +3,9 @@ package taorm
 import (
 	"database/sql"
 	"database/sql/driver"
+	"reflect"
 	"testing"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/movsb/taorm/mimic"
 )
 
@@ -30,7 +30,7 @@ func (Like) TableName() string {
 }
 
 func TestSQLs(t *testing.T) {
-	db, err := sql.Open("mysql", "taorm:taorm@/taorm")
+	db, err := sql.Open("mimic", "taorm:taorm@/taorm")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,6 +210,41 @@ func BenchmarkSelectComplex(b *testing.B) {
 			Find(&users)
 		if err != nil {
 			b.Fatal(err)
+		}
+	}
+}
+
+func TestWhere(t *testing.T) {
+	for i, tc := range []struct {
+		where _Where
+		sql   string
+		args  []any
+	}{
+		{
+			where: _Where{
+				query: `key=?`,
+				args:  []any{[]byte(`123`)},
+			},
+			sql:  `key=?`,
+			args: []any{[]byte(`123`)},
+		},
+		{
+			where: _Where{
+				query: `key in (?)`,
+				args:  []any{[]string{`123`, `456`}},
+			},
+			sql:  `key in (?,?)`,
+			args: []any{`123`, `456`},
+		},
+	} {
+		sql, args := tc.where.build()
+		if sql != tc.sql {
+			t.Errorf(`sql not equal: %s,%s`, sql, tc.sql)
+			continue
+		}
+		if !reflect.DeepEqual(args, tc.args) {
+			t.Errorf(`args not equal: #%d`, i)
+			continue
 		}
 	}
 }
