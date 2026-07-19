@@ -182,7 +182,7 @@ func structType(_struct any) (reflect.Type, error) {
 	if ty == nil {
 		return nil, &NotStructError{}
 	}
-	for ty.Kind() == reflect.Ptr || ty.Kind() == reflect.Slice {
+	for ty.Kind() == reflect.Pointer || ty.Kind() == reflect.Slice {
 		ty = ty.Elem()
 	}
 	if ty.Kind() != reflect.Struct {
@@ -200,7 +200,7 @@ func getTableNameFromType(ty reflect.Type) (string, error) {
 		return ``, &NotStructError{}
 	}
 
-	for ty.Kind() == reflect.Ptr || ty.Kind() == reflect.Slice {
+	for ty.Kind() == reflect.Pointer || ty.Kind() == reflect.Slice {
 		ty = ty.Elem()
 	}
 

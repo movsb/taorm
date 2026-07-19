@@ -234,7 +234,9 @@ func (s *Stmt) buildWheres() (string, []any) {
 			sb.WriteString(" AND ")
 		}
 		query, xargs := w.build()
-		sb.WriteString("(" + query + ")")
+		sb.WriteByte('(')
+		sb.WriteString(query)
+		sb.WriteByte(')')
 		args = append(args, xargs...)
 	}
 	return sb.String(), args

@@ -25,7 +25,7 @@ func ScanRows(out any, tx _SQLCommon, query string, args ...any) (_err error) {
 	}
 
 	ty := reflect.TypeOf(out)
-	if ty.Kind() != reflect.Ptr {
+	if ty.Kind() != reflect.Pointer {
 		return ErrInvalidOut
 	}
 
@@ -51,7 +51,7 @@ func ScanRows(out any, tx _SQLCommon, query string, args ...any) (_err error) {
 	case reflect.Slice:
 		slice := reflect.MakeSlice(ty, 0, 0)
 		ty = ty.Elem()
-		isPtr := ty.Kind() == reflect.Ptr
+		isPtr := ty.Kind() == reflect.Pointer
 		if isPtr {
 			ty = ty.Elem()
 		}
@@ -106,7 +106,6 @@ func ScanRows(out any, tx _SQLCommon, query string, args ...any) (_err error) {
 	}
 }
 
-// MustScanRows ...
 func MustScanRows(out any, tx _SQLCommon, query string, args ...any) {
 	if err := ScanRows(out, tx, query, args...); err != nil {
 		panic(err)
