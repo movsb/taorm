@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 	"unsafe"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type ColumnFieldStruct struct {
@@ -103,7 +101,9 @@ func TestToSnakeCase(t *testing.T) {
 		{`SQLInMarks`, `sql_in_marks`},
 	}
 	for _, x := range tests {
-		assert.Equal(t, x.b, toSnakeCase(x.a))
+		if x.b != toSnakeCase(x.a) {
+			t.Fatal(`not equal`)
+		}
 	}
 }
 
@@ -122,7 +122,9 @@ func TestGetColumnName(t *testing.T) {
 	}
 	r := reflect.TypeOf(s)
 	for i := 0; i < r.NumField(); i++ {
-		assert.Equal(t, n[i], getColumnName(r.Field(i)))
+		if n[i] != getColumnName(r.Field(i)) {
+			t.Fatal(`not equal`)
+		}
 	}
 }
 
@@ -138,6 +140,8 @@ func TestCreateSQLInMarks(t *testing.T) {
 		{10, `?,?,?,?,?,?,?,?,?,?`},
 	}
 	for _, s := range ss {
-		assert.Equal(t, s.m, createSQLInMarks(s.n))
+		if s.m != createSQLInMarks(s.n) {
+			t.Fatal(`not equal`)
+		}
 	}
 }

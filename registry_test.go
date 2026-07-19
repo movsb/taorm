@@ -3,8 +3,6 @@ package taorm
 import (
 	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type TableNameType1 struct {
@@ -21,26 +19,38 @@ func (*TableNameType2) TableName() string {
 	return `table_name`
 }
 
+func assertEqual(t *testing.T, a, b any) {
+	if a != b {
+		t.Fatal(`not equal`)
+	}
+}
+
+func assertNoError(t *testing.T, err error) {
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestGetTableName(t *testing.T) {
 	{
 		name, err := getTableNameFromType(reflect.TypeOf(TableNameType1{}))
-		assert.NoError(t, err)
-		assert.Equal(t, `table_name`, name)
+		assertNoError(t, err)
+		assertEqual(t, `table_name`, name)
 	}
 	{
 		name, err := getTableNameFromType(reflect.TypeOf(&TableNameType1{}))
-		assert.NoError(t, err)
-		assert.Equal(t, `table_name`, name)
+		assertNoError(t, err)
+		assertEqual(t, `table_name`, name)
 	}
 	{
 		name, err := getTableNameFromType(reflect.TypeOf(TableNameType2{}))
-		assert.NoError(t, err)
-		assert.Equal(t, `table_name`, name)
+		assertNoError(t, err)
+		assertEqual(t, `table_name`, name)
 	}
 	{
 		name, err := getTableNameFromType(reflect.TypeOf(&TableNameType2{}))
-		assert.NoError(t, err)
-		assert.Equal(t, `table_name`, name)
+		assertNoError(t, err)
+		assertEqual(t, `table_name`, name)
 	}
 }
 
