@@ -32,22 +32,22 @@ func newStructInfo() *_StructInfo {
 	}
 }
 
-func (s *_StructInfo) valueOf(out interface{}, field _FieldInfo) reflect.Value {
+func (s *_StructInfo) valueOf(out any, field _FieldInfo) reflect.Value {
 	return reflect.NewAt(
 		field._type,
 		unsafe.Pointer(uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)+field.offset),
 	).Elem()
 }
 
-func (s *_StructInfo) addrOf(out interface{}, field _FieldInfo) interface{} {
+func (s *_StructInfo) addrOf(out any, field _FieldInfo) any {
 	return reflect.NewAt(
 		field._type,
 		unsafe.Pointer(uintptr((*_EmptyEface)(unsafe.Pointer(&out)).ptr)+field.offset),
 	).Interface()
 }
 
-func (s *_StructInfo) ptrsOf(out interface{}, fields []string) ([]interface{}, error) {
-	ptrs := make([]interface{}, 0, len(fields))
+func (s *_StructInfo) ptrsOf(out any, fields []string) ([]any, error) {
+	ptrs := make([]any, 0, len(fields))
 	for _, field := range fields {
 		fi, ok := s.fields[field]
 		if !ok {
@@ -60,8 +60,8 @@ func (s *_StructInfo) ptrsOf(out interface{}, fields []string) ([]interface{}, e
 }
 
 // TODO works also with pk
-func (s *_StructInfo) ifacesOf(out interface{}) []interface{} {
-	values := make([]interface{}, len(s.insertFields))
+func (s *_StructInfo) ifacesOf(out any) []any {
+	values := make([]any, len(s.insertFields))
 	for i, f := range s.insertFields {
 		values[i] = reflect.NewAt(
 			f._type,
@@ -71,7 +71,7 @@ func (s *_StructInfo) ifacesOf(out interface{}) []interface{} {
 	return values
 }
 
-func (s *_StructInfo) setPrimaryKey(out interface{}, id int64) {
+func (s *_StructInfo) setPrimaryKey(out any, id int64) {
 	pkey := s.valueOf(out, s.pkeyField)
 	switch s.pkeyField._type.Kind() {
 	case reflect.Uint, reflect.Uint32, reflect.Uint64:
@@ -83,7 +83,7 @@ func (s *_StructInfo) setPrimaryKey(out interface{}, id int64) {
 	}
 }
 
-func (s *_StructInfo) getPrimaryKey(out interface{}) (interface{}, bool) {
+func (s *_StructInfo) getPrimaryKey(out any) (any, bool) {
 	zero := reflect.Zero(s.pkeyField._type).Interface()
 	pkv := s.valueOf(out, s.pkeyField).Interface()
 	return pkv, pkv != zero
@@ -177,7 +177,7 @@ func addStructFields(info *_StructInfo, ty reflect.Type, fieldNames *[]string) {
 
 // _struct can be any struct-related types.
 // e.g.: struct{}, *struct{}, **struct{}, []struct{}, []*struct, []*struct{}, *[]strcut{}, *[]*struct{} ...
-func structType(_struct interface{}) (reflect.Type, error) {
+func structType(_struct any) (reflect.Type, error) {
 	ty := reflect.TypeOf(_struct)
 	if ty == nil {
 		return nil, &NotStructError{}
@@ -207,14 +207,14 @@ func getTableNameFromType(ty reflect.Type) (string, error) {
 	return getTableNameFromValue(reflect.New(ty).Interface())
 }
 
-func getTableNameFromValue(value interface{}) (string, error) {
+func getTableNameFromValue(value any) (string, error) {
 	if i, ok := value.(TableNamer); ok {
 		return i.TableName(), nil
 	}
 	return ``, nil
 }
 
-func getRegistered(_struct interface{}) (*_StructInfo, error) {
+func getRegistered(_struct any) (*_StructInfo, error) {
 	ty, err := structType(_struct)
 	if err != nil {
 		return nil, err

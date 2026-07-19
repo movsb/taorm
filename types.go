@@ -5,20 +5,20 @@ import (
 )
 
 type _SQLCommon interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
 }
 
 // M is a string-interface map that is used for Update*.
-type M map[string]interface{}
+type M map[string]any
 
 // Finder wraps method for SELECT.
 type Finder interface {
-	Find(out interface{}) error
-	MustFind(out interface{})
+	Find(out any) error
+	MustFind(out any)
 	FindSQL() string
-	Count(out interface{}) error
-	MustCount(out interface{})
+	Count(out any) error
+	MustCount(out any)
 	CountSQL() string
 }
 

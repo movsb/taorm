@@ -12,10 +12,10 @@ import (
 // _Where ...
 type _Where struct {
 	query string
-	args  []interface{}
+	args  []any
 }
 
-func (w _Where) build() (query string, args []interface{}) {
+func (w _Where) build() (query string, args []any) {
 	sb := bytes.NewBuffer(nil)
 	sb.Grow(len(query)) // should we reserve capacity for slice too?
 	var i int
@@ -64,7 +64,7 @@ func (w _Where) build() (query string, args []interface{}) {
 type _Expr _Where
 
 // Expr creates an expression for Update* operations.
-func Expr(expr string, args ...interface{}) _Expr {
+func Expr(expr string, args ...any) _Expr {
 	return _Expr{
 		query: expr,
 		args:  args,
@@ -73,15 +73,15 @@ func Expr(expr string, args ...interface{}) _Expr {
 
 type _RawQuery struct {
 	query string
-	args  []interface{}
+	args  []any
 }
 
 // Stmt is an SQL statement.
 type Stmt struct {
 	db         *DB
 	raw        _RawQuery // not set if query == ""
-	model      interface{}
-	fromTable  interface{}
+	model      any
+	fromTable  any
 	info       *_StructInfo
 	tableNames []string
 	joinTables []_Join
@@ -96,7 +96,7 @@ type Stmt struct {
 
 // From ...
 // table can be either string or struct.
-func (s *Stmt) From(table interface{}) *Stmt {
+func (s *Stmt) From(table any) *Stmt {
 	switch typed := table.(type) {
 	case string:
 		s.tableNames = append(s.tableNames, typed)
@@ -162,7 +162,7 @@ func (s *Stmt) Select(fields string) *Stmt {
 }
 
 // Where ...
-func (s *Stmt) Where(query string, args ...interface{}) *Stmt {
+func (s *Stmt) Where(query string, args ...any) *Stmt {
 	w := _Where{
 		query: query,
 		args:  args,
@@ -172,7 +172,7 @@ func (s *Stmt) Where(query string, args ...interface{}) *Stmt {
 }
 
 // WhereIf ...
-func (s *Stmt) WhereIf(cond bool, query string, args ...interface{}) *Stmt {
+func (s *Stmt) WhereIf(cond bool, query string, args ...any) *Stmt {
 	if cond {
 		s.Where(query, args...)
 	}
@@ -216,7 +216,7 @@ func (s *Stmt) noWheres() bool {
 	return len(s.ands) <= 0
 }
 
-func (s *Stmt) buildWheres() (string, []interface{}) {
+func (s *Stmt) buildWheres() (string, []any) {
 	if s.model != nil {
 		id, ok := s.info.getPrimaryKey(s.model)
 		s.WhereIf(ok, "id=?", id)
@@ -226,7 +226,7 @@ func (s *Stmt) buildWheres() (string, []interface{}) {
 		return "", nil
 	}
 
-	var args []interface{}
+	var args []any
 	sb := bytes.NewBuffer(nil)
 	sb.WriteString(" WHERE ")
 	for i, w := range s.ands {
@@ -258,7 +258,7 @@ func (s *Stmt) buildJoins() (string, []any) {
 	return sb.String(), args
 }
 
-func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
+func (s *Stmt) buildCreate() (*_StructInfo, string, []any, error) {
 	panicIf(len(s.tableNames) != 1, "model length is not 1")
 	panicIf(s.raw.query != "", "cannot use raw here")
 	info, err := getRegistered(s.model)
@@ -279,7 +279,7 @@ func (s *Stmt) buildCreate() (*_StructInfo, string, []interface{}, error) {
 	return info, query, args, nil
 }
 
-func (s *Stmt) tryFindTableName(out interface{}) (string, error) {
+func (s *Stmt) tryFindTableName(out any) (string, error) {
 	info, err := getRegistered(out)
 	if err != nil {
 		return "", err
@@ -290,7 +290,7 @@ func (s *Stmt) tryFindTableName(out interface{}) (string, error) {
 	return info.tableName, nil
 }
 
-func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}, error) {
+func (s *Stmt) buildSelect(out any, isCount bool) (string, []any, error) {
 	if s.raw.query != "" {
 		return s.raw.query, s.raw.args, nil
 	}
@@ -338,7 +338,7 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 		strFields = strings.Join(fields, ",")
 	}
 
-	var args []interface{}
+	var args []any
 
 	query := `SELECT ` + strFields + ` FROM ` + strings.Join(s.tableNames, ",")
 	if len(s.joinTables) > 0 {
@@ -366,7 +366,7 @@ func (s *Stmt) buildSelect(out interface{}, isCount bool) (string, []interface{}
 	return query, args, nil
 }
 
-func (s *Stmt) buildUpdateMap(fields map[string]interface{}) (string, []interface{}, error) {
+func (s *Stmt) buildUpdateMap(fields map[string]any) (string, []any, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
 	panicIf(s.raw.query != "", "cannot use raw here")
 	query := `UPDATE ` + strings.Join(s.tableNames, ",") + ` SET `
@@ -376,7 +376,7 @@ func (s *Stmt) buildUpdateMap(fields map[string]interface{}) (string, []interfac
 	}
 
 	updates := make([]string, 0, len(fields))
-	args := make([]interface{}, 0, len(fields))
+	args := make([]any, 0, len(fields))
 
 	for field, value := range fields {
 		switch tv := value.(type) {
@@ -403,7 +403,7 @@ func (s *Stmt) buildUpdateMap(fields map[string]interface{}) (string, []interfac
 	return query, args, nil
 }
 
-func (s *Stmt) buildUpdateModel(model interface{}) (string, []interface{}, error) {
+func (s *Stmt) buildUpdateModel(model any) (string, []any, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
 	panicIf(s.raw.query != "", "cannot use raw here")
 	query := s.info.updatestr
@@ -414,10 +414,10 @@ func (s *Stmt) buildUpdateModel(model interface{}) (string, []interface{}, error
 	return query, args, nil
 }
 
-func (s *Stmt) buildDelete() (string, []interface{}, error) {
+func (s *Stmt) buildDelete() (string, []any, error) {
 	panicIf(len(s.tableNames) == 0, "model is empty")
 	panicIf(s.raw.query != "", "cannot use raw here")
-	var args []interface{}
+	var args []any
 	query := `DELETE FROM ` + strings.Join(s.tableNames, ",")
 
 	whereQuery, whereArgs := s.buildWheres()
@@ -534,7 +534,7 @@ func (s *Stmt) CreateSQL() string {
 }
 
 // Find ...
-func (s *Stmt) Find(out interface{}) error {
+func (s *Stmt) Find(out any) error {
 	query, args, err := s.buildSelect(out, false)
 	if err != nil {
 		return WrapError(err)
@@ -545,7 +545,7 @@ func (s *Stmt) Find(out interface{}) error {
 }
 
 // MustFind ...
-func (s *Stmt) MustFind(out interface{}) {
+func (s *Stmt) MustFind(out any) {
 	if err := s.Find(out); err != nil {
 		panic(err)
 	}
@@ -569,7 +569,7 @@ func (s *Stmt) FindSQLRaw() string {
 }
 
 // Count ...
-func (s *Stmt) Count(out interface{}) error {
+func (s *Stmt) Count(out any) error {
 	query, args, err := s.buildSelect(s.fromTable, true)
 	if err != nil {
 		return WrapError(err)
@@ -580,7 +580,7 @@ func (s *Stmt) Count(out interface{}) error {
 }
 
 // MustCount ...
-func (s *Stmt) MustCount(out interface{}) {
+func (s *Stmt) MustCount(out any) {
 	if err := s.Count(out); err != nil {
 		panic(err)
 	}
@@ -619,7 +619,7 @@ func (s *Stmt) updateMap(fields M, anyway bool) (sql.Result, error) {
 	return res, nil
 }
 
-func (s *Stmt) updateModel(model interface{}) (sql.Result, error) {
+func (s *Stmt) updateModel(model any) (sql.Result, error) {
 	query, args, err := s.buildUpdateModel(model)
 	if err != nil {
 		return nil, err
@@ -648,7 +648,7 @@ func (s *Stmt) UpdateMapAnyway(updates M) (sql.Result, error) {
 }
 
 // UpdateModel ...
-func (s *Stmt) UpdateModel(model interface{}) (sql.Result, error) {
+func (s *Stmt) UpdateModel(model any) (sql.Result, error) {
 	res, err := s.updateModel(model)
 	return res, WrapError(err)
 }
@@ -672,7 +672,7 @@ func (s *Stmt) MustUpdateMapAnyway(updates M) sql.Result {
 }
 
 // MustUpdateModel ...
-func (s *Stmt) MustUpdateModel(model interface{}) sql.Result {
+func (s *Stmt) MustUpdateModel(model any) sql.Result {
 	res, err := s.updateModel(model)
 	if err != nil {
 		panic(err)
@@ -690,7 +690,7 @@ func (s *Stmt) UpdateMapSQL(updates M) string {
 }
 
 // UpdateModelSQL ...
-func (s *Stmt) UpdateModelSQL(model interface{}) string {
+func (s *Stmt) UpdateModelSQL(model any) string {
 	query, args, err := s.buildUpdateModel(model)
 	if err != nil {
 		panic(WrapError(err))

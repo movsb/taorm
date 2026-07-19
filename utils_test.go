@@ -33,7 +33,7 @@ type ColumnFieldStruct struct {
 	A          [1]int         "false"
 	C          chan string    "false"
 	F          func()         "false"
-	If         interface{}    "false"
+	If         any            "false"
 	M          map[string]int "false"
 	P          *int           "false"
 	Slice      []int          "false"
@@ -59,7 +59,7 @@ func (t _TypeWithScannerAndValuer) Value() (driver.Value, error) {
 	return "", nil
 }
 
-func (t *_TypeWithScannerAndValuer) Scan(value interface{}) error {
+func (t *_TypeWithScannerAndValuer) Scan(value any) error {
 	return nil
 }
 
@@ -69,7 +69,7 @@ func (t _TypeWithValueScannerAndValuer) Value() (driver.Value, error) {
 	return "", nil
 }
 
-func (t _TypeWithValueScannerAndValuer) Scan(value interface{}) error {
+func (t _TypeWithValueScannerAndValuer) Scan(value any) error {
 	return nil
 }
 

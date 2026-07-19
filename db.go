@@ -49,8 +49,8 @@ func (db *DB) TxCall(callback func(tx *DB) error) error {
 	}
 
 	var exception struct {
-		caught bool        // user callback threw an exception
-		what   interface{} // user thrown exception
+		caught bool // user callback threw an exception
+		what   any  // user thrown exception
 	}
 
 	catchCall := func() (err error) {
@@ -95,7 +95,7 @@ func (db *DB) MustTxCall(callback func(tx *DB)) {
 
 // TODO: 这里如果传 **struct，会有隐匿错误。
 // TODO: 这里只能为 *struct
-func (db *DB) Model(model interface{}) *Stmt {
+func (db *DB) Model(model any) *Stmt {
 	stmt := &Stmt{
 		db:         db,
 		model:      model,
@@ -117,7 +117,7 @@ func (db *DB) Model(model interface{}) *Stmt {
 }
 
 // From ...
-func (db *DB) From(table interface{}) *Stmt {
+func (db *DB) From(table any) *Stmt {
 	s := &Stmt{
 		db:     db,
 		limit:  -1,
@@ -133,7 +133,7 @@ func (db *DB) From(table interface{}) *Stmt {
 }
 
 // Raw executes a raw SQL query that returns rows.
-func (db *DB) Raw(query string, args ...interface{}) Finder {
+func (db *DB) Raw(query string, args ...any) Finder {
 	stmt := &Stmt{
 		db: db,
 	}
@@ -147,7 +147,7 @@ func (db *DB) Raw(query string, args ...interface{}) Finder {
 // Below are some commonly used functions to begin a preparing.
 
 // MustExec ...
-func (db *DB) MustExec(query string, args ...interface{}) sql.Result {
+func (db *DB) MustExec(query string, args ...any) sql.Result {
 	result, err := db.Exec(query, args...)
 	if err != nil {
 		panic(WrapError(err))
@@ -170,21 +170,21 @@ func (db *DB) Select(fields string) *Stmt {
 }
 
 // Where ...
-func (db *DB) Where(query string, args ...interface{}) *Stmt {
+func (db *DB) Where(query string, args ...any) *Stmt {
 	return db._New().Where(query, args...)
 }
 
 // WhereIf ...
-func (db *DB) WhereIf(cond bool, query string, args ...interface{}) *Stmt {
+func (db *DB) WhereIf(cond bool, query string, args ...any) *Stmt {
 	return db._New().WhereIf(cond, query, args...)
 }
 
 // Find ...
-func (db *DB) Find(out interface{}) error {
+func (db *DB) Find(out any) error {
 	return db._New().Find(out)
 }
 
 // MustFind ...
-func (db *DB) MustFind(out interface{}) {
+func (db *DB) MustFind(out any) {
 	db._New().MustFind(out)
 }

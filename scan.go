@@ -9,7 +9,7 @@ import (
 // ScanRows scans result rows into out.
 //
 // out can be either *primitive, *Struct, *[]Struct, or *[]*Struct.
-func ScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{}) (_err error) {
+func ScanRows(out any, tx _SQLCommon, query string, args ...any) (_err error) {
 	defer func() { _err = WrapError(_err) }()
 
 	rows, err := tx.Query(query, args...)
@@ -107,7 +107,7 @@ func ScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{})
 }
 
 // MustScanRows ...
-func MustScanRows(out interface{}, tx _SQLCommon, query string, args ...interface{}) {
+func MustScanRows(out any, tx _SQLCommon, query string, args ...any) {
 	if err := ScanRows(out, tx, query, args...); err != nil {
 		panic(err)
 	}

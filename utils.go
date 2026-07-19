@@ -89,13 +89,13 @@ func createSQLInMarks(count int) string {
 	return s
 }
 
-func panicIf(cond bool, v interface{}) {
+func panicIf(cond bool, v any) {
 	if cond {
 		panic(v)
 	}
 }
 
-func dumpSQL(query string, args ...interface{}) {
+func dumpSQL(query string, args ...any) {
 	// fmt.Println(strSQL(query, args...))
 }
 
@@ -112,7 +112,7 @@ func (v _StrArg) String() string {
 	}
 }
 
-func strSQL(query string, args ...interface{}) string {
+func strSQL(query string, args ...any) string {
 	sa := make([]_StrArg, 0, len(args))
 	for _, a := range args {
 		sa = append(sa, _StrArg{a: a})
